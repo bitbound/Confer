@@ -1,0 +1,50 @@
+.sidebar-frame {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    text-align: center;
+    background-color: rgb(50,50,50);
+    opacity: 0;
+    z-index: 3;
+    transition: .5s ease all;
+}
+
+  .sidebar-frame.open {
+      width: 200px;
+      opacity: 1;
+      transition: .5s ease all;
+  }
+
+  .sidebar-frame.fixed {
+    position: unset;
+  }
+
+  .sidebar-frame button {
+    white-space: nowrap;
+  }
+
+a.navbar-brand {
+    white-space: normal;
+    text-align: center;
+    word-break: break-all;
+  }
+  
+  html {
+    font-size: 14px;
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+  
+  .box-shadow {
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+  }
+  

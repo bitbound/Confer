@@ -1,0 +1,11 @@
+.menu-button {
+    margin-right: 5px;
+  }
+  
+  .menu-button.hidden {
+    opacity: 0;
+    width: 0;
+    margin: 0;
+    padding: 0;
+  }
+  
