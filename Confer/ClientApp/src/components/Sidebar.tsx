@@ -62,7 +62,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           </NavLink>
         </button>
         <button className="btn btn-secondary d-block mx-4 my-2">
-          <NavLink tag={Link} className="text-light" to="/stats">
+          <NavLink tag={Link} className="text-light" to="/settings">
             <FaWrench className="mr-2" />
               Settings
             </NavLink>

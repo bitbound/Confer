@@ -7,7 +7,7 @@ import ApiAuthorizationRoutes from './components/api-authorization/ApiAuthorizat
 import { ApplicationPaths } from './components/api-authorization/ApiAuthorizationConstants';
 
 import './custom.css'
-import { Stats as Settings } from './components/Settings';
+import { SettingsComp } from './components/Settings';
 
 export default class App extends Component {
   static displayName = App.name;
@@ -16,7 +16,7 @@ export default class App extends Component {
     return (
       <Layout>
         <Route exact path='/' component={Home} />
-        <Route path='/stats' component={Settings} />
+        <Route path='/settings' component={SettingsComp} />
         <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
       </Layout>
     );

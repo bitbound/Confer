@@ -4,7 +4,6 @@ import { getWindowSize, WindowSize } from '../utils/UI';
 import { FaBars } from 'react-icons/fa';
 import './Layout.css';
 import { Navbar } from 'reactstrap';
-import { AuthAwareContainer } from './AuthAwareContainer';
 import authService from './api-authorization/AuthorizeService';
 
 interface LayoutProps { }
@@ -77,7 +76,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
             </Navbar>
           </header>
 
-          <div className="mx-2 overflow-auto">
+          <div className="mx-2">
             {this.props.children}
           </div>
         </div>
