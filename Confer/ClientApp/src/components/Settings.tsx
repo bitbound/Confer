@@ -6,8 +6,7 @@ import {
   Label,
   Row
 } from 'reactstrap';
-import { Settings } from '../interfaces/Settings';
-import { getSettings, saveSettings } from '../services/Settings';
+import { getSettings, saveSettings } from '../services/SettingsService';
 import { If } from './If';
 
 interface SettingsProps {

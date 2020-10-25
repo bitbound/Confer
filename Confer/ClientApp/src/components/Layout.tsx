@@ -26,7 +26,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
     }
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     window.addEventListener("resize", this.onWindowResized);
     //this.subscription = authService.subscribe(() => this.setUser());
     //this.setUser();

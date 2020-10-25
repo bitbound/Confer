@@ -13,21 +13,6 @@ interface SidebarProps {
 interface SidebarState { }
 
 export class Sidebar extends Component<SidebarProps, SidebarState> {
-  renderLoggedInButtons() {
-    return (
-      <Fragment>
-      </Fragment>
-    )
-  }
-
-  renderLoggedOutButtons() {
-    return (
-      <Fragment>
-
-      </Fragment>
-    )
-  }
-
   render() {
 
     var sidebarClass = "sidebar-frame";
@@ -67,15 +52,6 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               Settings
             </NavLink>
         </button>
-
-        {/* <AuthAwareContainer
-          loggedInRender={this.renderLoggedInButtons()}
-          loggedOutRender={this.renderLoggedOutButtons()}
-        />
-
-        <div className="my-2"></div>
-
-        <LoginMenu></LoginMenu> */}
       </div>
     );
   }
