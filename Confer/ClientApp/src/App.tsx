@@ -8,8 +8,7 @@ import { ApplicationPaths } from './components/api-authorization/ApiAuthorizatio
 
 import './custom.css'
 import { SettingsComp } from './components/Settings';
-import { Host } from './components/Host';
-import { Join } from './components/Join';
+import { Session } from './components/Session';
 
 export default class App extends Component {
   static displayName = App.name;
@@ -19,8 +18,7 @@ export default class App extends Component {
       <Layout>
         <Route exact path='/' component={Home} />
         <Route path='/settings' component={SettingsComp} />
-        <Route path='/host/:sessionId' component={Host} />
-        <Route path='/join/:sessionId' component={Join} />
+        <Route path='/session/:sessionId' component={Session} />
         <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
       </Layout>
     );

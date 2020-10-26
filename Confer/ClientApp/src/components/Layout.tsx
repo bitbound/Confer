@@ -5,6 +5,7 @@ import { FaBars } from 'react-icons/fa';
 import './Layout.css';
 import { Navbar } from 'reactstrap';
 import authService from './api-authorization/AuthorizeService';
+import { If } from './If';
 
 interface LayoutProps { }
 interface LayoutState {
@@ -50,13 +51,13 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
 
   render() {
+    if (window.location.pathname.includes("/session/")) {
+      return this.renderMainContent(false);
+    }
+
     var gridTemplate = this.state.isSidebarFixed ?
       "auto 1fr" :
       "1fr";
-
-    var menuButtonClass = this.state.isSidebarOpen ?
-      "navbar-toggler menu-button hidden" :
-      "navbar-toggler menu-button";
 
     return (
       <div style={{ display: "grid", gridTemplateColumns: gridTemplate, gridColumnGap: "5px", height: "100%" }}>
@@ -65,26 +66,39 @@ export class Layout extends Component<LayoutProps, LayoutState> {
           isFixed={this.state.isSidebarFixed}
           onSidebarClosed={() => this.setState({ isSidebarOpen: false })} />
 
-        <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px" }}>
-          <header>
-            <Navbar className="ng-white box-shadow mb-3 justify-content-start" light>
+          {this.renderMainContent(true)}
+      </div>
+    );
+  }
+
+  private renderMainContent(menuVisible: boolean) {
+    var menuButtonClass = this.state.isSidebarOpen ?
+      "navbar-toggler menu-button hidden" :
+      "navbar-toggler menu-button";
+
+    return (
+      <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px" }}>
+        <header>
+          <Navbar className="ng-white box-shadow mb-3 justify-content-start" light>
+            <If condition={() => menuVisible}>
               <button type="button" className={menuButtonClass} onClick={() => {
                 this.setState({ isSidebarOpen: true });
               }}>
                 <FaBars></FaBars>
               </button>
-            </Navbar>
-          </header>
+            </If>
 
-          <div className="mx-2">
-            {this.props.children}
-          </div>
+          </Navbar>
+        </header>
+
+        <div className="mx-2">
+          {this.props.children}
         </div>
       </div>
-    );
+    )
   }
 
-  async setUser() {
+  private async setUser() {
     var user = await authService.getUser();
     console.log(user);
     this.setState({

@@ -1,20 +1,21 @@
 import React, { Component } from "react";
 import { match } from "react-router-dom";
 import { SessionParams } from "../interfaces/SessionParams";
+import { LoadingAnimation } from "./LoadingAnimation";
 
-interface HostProps {
+interface SessionProps {
   match?: match<SessionParams>;
 }
 
-interface HostState {
+interface SessionState {
   sessionChecked: boolean;
   sessionId?: string;
   sessionValid: boolean;
   signalingConnected: boolean;
 }
 
-export class Host extends Component<HostProps, HostState> {
-  constructor(props: HostProps) {
+export class Session extends Component<SessionProps, SessionState> {
+  constructor(props: SessionProps) {
     super(props);
 
     const sessionId = this.props.match
@@ -42,7 +43,7 @@ export class Host extends Component<HostProps, HostState> {
 
     if (!signalingConnected) {
       return (
-        <h2>Connecting...</h2>
+        <LoadingAnimation message="Connecting"></LoadingAnimation>
       )
     }
 
