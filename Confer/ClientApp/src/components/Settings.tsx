@@ -1,3 +1,4 @@
+import { Log } from 'oidc-client';
 import React, { Component } from 'react';
 import {
   Col,
@@ -8,6 +9,8 @@ import {
 } from 'reactstrap';
 import { getSettings, saveSettings } from '../services/SettingsService';
 import { If } from './If';
+
+const settings = getSettings();
 
 interface SettingsProps {
 
@@ -34,51 +37,89 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
   }
 
   componentDidMount() {
-    const settings = getSettings();
+   this.initAudioDevices();
 
-    navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: true
-    })
-      .then(stream => {
-        navigator.mediaDevices.enumerateDevices()
-          .then(devices => {
-            let cameras = devices.filter(x => x.kind == "videoinput");
-            let mics = devices.filter(x => x.kind == "audioinput");
-            this.setState({
-              audioInputs: mics,
-              videoInputs: cameras
+   this.initVideoDevices();
+  }
+
+  initAudioDevices() {
+    try {
+      navigator.mediaDevices.getUserMedia({
+        audio: true,
+      })
+        .then(stream => {
+          navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+              let mics = devices.filter(x => x.kind == "audioinput");
+              this.setState({
+                audioInputs: mics
+              });
+  
+              let selectedAudio = mics.find(x =>
+                x.deviceId == settings.defaultAudioInput &&
+                mics.some(mic => mic.deviceId == x.deviceId)) || mics[0];
+  
+              if (selectedAudio) {
+                this.setState({
+                  selectedAudioInput: selectedAudio.deviceId,
+                })
+                this.loadAudioDevice(selectedAudio.deviceId);
+              }
+            })
+            .catch(reason => {
+              console.error(reason);
+              alert("Failed to get audio devices.  Make sure this site has permission.");
             });
+        })
+        .catch(error => {
+          console.error(error);
+          alert("Failed to get audio devices.");
+        })
+    }
+    catch(ex) {
+      console.error(ex);
+      alert("Failed to initialize audio devices.");
+    }
+  }
 
-            let selectedVideo = cameras.find(x =>
-              x.deviceId == settings.defaultVideoInput) || cameras[0];
-
-            if (selectedVideo) {
-              this.setState({
-                selectedVideoInput: selectedVideo.deviceId,
-              })
-              this.loadVideoDevice(selectedVideo.deviceId);
-            }
-
-            let selectedAudio = mics.find(x =>
-              x.deviceId == settings.defaultAudioInput) || mics[0];
-
-            if (selectedAudio) {
-              this.setState({
-                selectedAudioInput: selectedAudio.deviceId,
-              })
-              this.loadAudioDevice(selectedAudio.deviceId);
-            }
-          })
-          .catch(reason => {
-            console.error(reason);
-            alert("Failed to get media devices.  Make sure this site has permission.");
-          });
+  initVideoDevices() {
+    try {
+      navigator.mediaDevices.getUserMedia({
+        video: true
       })
-      .catch(error => {
-        console.error(error);
-        alert("Failed to get media devices.");
-      })
+        .then(stream => {
+          navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+              let cameras = devices.filter(x => x.kind == "videoinput");
+              this.setState({
+                videoInputs: cameras
+              });
+  
+              let selectedVideo = cameras.find(x =>
+                x.deviceId == settings.defaultVideoInput &&
+                cameras.some(cam => cam.deviceId == x.deviceId)) || cameras[0];
+  
+              if (selectedVideo) {
+                this.setState({
+                  selectedVideoInput: selectedVideo.deviceId,
+                })
+                this.loadVideoDevice(selectedVideo.deviceId);
+              }
+            })
+            .catch(reason => {
+              console.error(reason);
+              alert("Failed to get video devices.  Make sure this site has permission.");
+            });
+        })
+        .catch(error => {
+          console.error(error);
+          alert("Failed to get video devices.");
+        })
+    }
+    catch(ex) {
+      console.error(ex);
+      alert("Failed to initialize video devices.");
+    }
   }
 
   loadAudioDevice(deviceId: string) {
@@ -147,7 +188,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
               </select>
             </FormGroup>
 
-            <If condition={() => !!this.state.videoTracks}>
+            <If condition={!!this.state.videoTracks}>
               <div>
                 <video
                   style={{width: "100%"}}

@@ -80,7 +80,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
       <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px" }}>
         <header>
           <Navbar className="ng-white box-shadow mb-3 justify-content-start" light>
-            <If condition={() => menuVisible}>
+            <If condition={menuVisible}>
               <button type="button" className={menuButtonClass} onClick={() => {
                 this.setState({ isSidebarOpen: true });
               }}>
@@ -91,7 +91,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
           </Navbar>
         </header>
 
-        <div className="mx-2">
+        <div className="container" style={{ maxWidth: "unset" }}>
           {this.props.children}
         </div>
       </div>
