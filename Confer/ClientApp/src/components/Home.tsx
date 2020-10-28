@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { AuthAwareContainer } from './AuthAwareContainer';
 import { NavLink } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { ApplicationPaths } from './api-authorization/ApiAuthorizationConstants';
@@ -13,11 +12,6 @@ export class Home extends Component {
         <h1 className="mt-2">Welcome to Confer!</h1>
       </div>
     )
-    //return (
-    //  <AuthAwareContainer
-    //    loggedOutRender={this.renderAnonymousPage()}
-    //    loggedInRender='' />
-    //);
   }
 
 

@@ -18,7 +18,6 @@ export default class App extends Component {
       <Layout>
         <Route exact path='/' component={Home} />
         <Route path='/settings' component={SettingsComp} />
-        <Route path='/session/:sessionId' component={Session} />
         <Route path={ApplicationPaths.ApiAuthorizationPrefix} component={ApiAuthorizationRoutes} />
       </Layout>
     );

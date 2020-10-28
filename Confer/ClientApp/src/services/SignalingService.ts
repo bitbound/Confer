@@ -1,13 +1,24 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { PeerConnection } from "../interfaces/PeerConnection";
+import { SessionDto } from "../interfaces/SessionDto";
 
 class SignalingService {
   private connection?: HubConnection;
+  private initialized: boolean = false;
+  private peerConnections: PeerConnection[] = [];
+  
+  public sessionInfo?: SessionDto;
 
   public get state(): HubConnectionState | undefined {
     return this.connection && this.connection.state;
   }
 
   public connect(onStateChange: (state:HubConnectionState) => void): Promise<boolean> {
+    if (this.initialized) {
+      return Promise.resolve(true);
+    }
+
+    this.initialized = true;
     return new Promise<boolean>(resolve => {
 
       if (this.connection) {
@@ -19,8 +30,8 @@ class SignalingService {
         .withAutomaticReconnect()
         .build();
 
-      this.connection.on("sdp", (description: RTCSessionDescriptionInit) => {
-        this.receiveSdp(description);
+      this.connection.on("sdp", (peerId: string, description: RTCSessionDescriptionInit) => {
+        this.receiveSdp(peerId, description);
       });
 
       this.connection.onclose(() => onStateChange(HubConnectionState.Disconnected));
@@ -40,12 +51,36 @@ class SignalingService {
     })
   }
 
-  public validateSessionId(sessionId: string) : Promise<boolean> {
-    return this.connection?.invoke("ValidateSession", sessionId) || Promise.resolve(false);
+  public getSessionInfo(sessionId: string) : Promise<SessionDto | undefined> {
+    return this.connection?.invoke("GetSessionInfo", sessionId) || Promise.resolve(undefined);
   }
   
-  private receiveSdp(description: RTCSessionDescriptionInit) {
-    throw new Error("Method not implemented.");
+  private async receiveSdp(peerId: string, description: RTCSessionDescriptionInit) {
+    if (description.type == "offer") {
+      // TODO: Get TURN server from signaling connection.
+      var pc = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: "stun: stun.l.google.com:19302"
+          },
+          {
+            urls: "stun: stun4.l.google.com:19302"
+          }
+        ]
+      });
+      await pc.setRemoteDescription(description);
+      var answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      this.connection?.invoke("SendSdp", pc.localDescription);
+    }
+    else {
+      var peer = this.peerConnections.find(x=>x.peerId == peerId);
+      if (!peer) {
+        console.error(`Unable to find peer with ID ${peerId}.`);
+        return;
+      }
+      await peer.peerConnection.setRemoteDescription(description);
+    }
   }
 }
 

@@ -1,47 +1,26 @@
 import { HubConnectionState } from "@microsoft/signalr";
 import React, { Component } from "react";
-import { match } from "react-router-dom";
-import { SessionParams } from "../interfaces/SessionParams";
-import { Signaler } from "../services/SignalingService";
+import { SessionDto } from "../interfaces/SessionDto";
 import { LoadingAnimation } from "./LoadingAnimation";
 
 interface SessionProps {
-    match?: match<SessionParams>;
+    sessionChecked: boolean;
+    sessionId?: string;
+    sessionInfo?: SessionDto;
+    connectionState?: HubConnectionState;
 }
 
 interface SessionState {
-    sessionChecked: boolean;
-    sessionId?: string;
-    sessionValid: boolean;
-    connectionState: HubConnectionState;
 }
 
 export class Session extends Component<SessionProps, SessionState> {
-    constructor(props: SessionProps) {
-        super(props);
-
-        const sessionId = this.props.match
-            && this.props.match.params.sessionId;
-
-        this.state = {
-            sessionId: sessionId,
-            sessionChecked: false,
-            sessionValid: false,
-            connectionState: HubConnectionState.Connecting
-        }
-    }
-
-    async componentDidMount() {
-        await Signaler.connect(this.signalerStateChanged);
-    }
-
     render() {
         const {
             sessionId,
             sessionChecked,
-            sessionValid,
+            sessionInfo,
             connectionState
-        } = this.state;
+        } = this.props;
 
         switch (connectionState) {
             case HubConnectionState.Connecting:
@@ -69,7 +48,7 @@ export class Session extends Component<SessionProps, SessionState> {
             )
         }
 
-        if (!sessionValid) {
+        if (!sessionInfo) {
             return (
                 <h2 className="text-center">Session ID not found.</h2>
             )
@@ -80,24 +59,5 @@ export class Session extends Component<SessionProps, SessionState> {
 
             </div>
         )
-    }
-
-    signalerStateChanged = async (state: HubConnectionState) => {
-        this.setState({
-            connectionState: state,
-        })
-
-        if (state == HubConnectionState.Connected) {
-            this.setState({
-                sessionChecked: false,
-                sessionValid: false
-            })
-            // TODO: Clear previous MediaStreams.
-            var isSessionValid = await Signaler.validateSessionId(String(this.state.sessionId));
-            this.setState({
-                sessionChecked: true,
-                sessionValid: isSessionValid
-            })
-        }
     }
 }
