@@ -5,4 +5,5 @@
 		titleText: string;
 		logoUrl: string;
 		pageBackgroundColor: string;
+		pageTextColor: string;
 	}

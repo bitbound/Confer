@@ -24,5 +24,8 @@ namespace Confer.Models
 
         [StringLength(30)]
         public string PageBackgroundColor { get; set; }
+
+        [StringLength(30)]
+        public string PageTextColor { get; set; }
     }
 }

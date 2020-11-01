@@ -15,14 +15,30 @@ namespace Confer.Services
     {
         private readonly ISessionManager _sessionManager;
         private readonly ILogger<SignalingHub> _logger;
+        private readonly IAppSettings _appSettings;
 
         public static ConcurrentDictionary<string, IClientProxy> Connections { get; } =
           new ConcurrentDictionary<string, IClientProxy>();
 
-        public SignalingHub(ISessionManager sessionManager, ILogger<SignalingHub> logger)
+        public SignalingHub(IAppSettings appSettings,
+            ISessionManager sessionManager,
+            ILogger<SignalingHub> logger)
         {
+            _appSettings = appSettings;
             _sessionManager = sessionManager;
             _logger = logger;
+        }
+
+        private string SessionId
+        {
+            get
+            {
+                return Context.Items["SessionId"] as string;
+            }
+            set
+            {
+                Context.Items["SessionId"] = value;
+            }
         }
 
 
@@ -33,25 +49,53 @@ namespace Confer.Services
             return base.OnConnectedAsync();
         }
 
-        public override Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
             _logger.LogDebug("Connection lost.  Count: {count}", Connections.Count);
             Connections.TryRemove(Context.ConnectionId, out _);
-            return base.OnDisconnectedAsync(exception);
+            
+            if (!string.IsNullOrWhiteSpace(SessionId))
+            {
+                await Clients.Group(SessionId).SendAsync("ParticipantLeft", Context.ConnectionId);
+            }
+            await base.OnDisconnectedAsync(exception);
         }
 
-        public SessionDto GetSessionInfo(string sessionId)
+        public ClientIceServer[] GetIceServers()
+        {
+            return _appSettings.IceServers;
+        }
+
+        public string[] GetPeers()
+        {
+            if (_sessionManager.TryGetSession(SessionId, out var session))
+            {
+                return session.Participants.Keys
+                    .Where(x => x != Context.ConnectionId)
+                    .ToArray();
+            }
+            else
+            {
+                return Array.Empty<string>();
+            }
+        }
+
+        public SessionDto JoinSession(string sessionId)
         {
             if (!_sessionManager.TryGetSession(sessionId, out var session))
             {
                 return null;
             }
 
+            SessionId = sessionId;
+            session.Participants.AddOrUpdate(Context.ConnectionId, string.Empty, (k,v) => string.Empty);
+
             return new SessionDto()
             {
                 Id = session.Id,
                 LogoUrl = session.LogoUrl,
                 PageBackgroundColor = session.PageBackgroundColor,
+                PageTextColor = session.PageTextColor,
                 TitleBackgroundColor = session.TitleBackgroundColor,
                 TitleText = session.TitleText,
                 TitleTextColor = session.TitleTextColor

@@ -1,9 +1,9 @@
-import { Log } from 'oidc-client';
 import React, { Component } from 'react';
 import {
   Col,
   Form,
   FormGroup,
+  Input,
   Label,
   Row
 } from 'reactstrap';
@@ -23,6 +23,7 @@ interface SettingsState {
   selectedAudioInput?: string;
   videoTracks?: MediaStreamTrack[];
   audioTrack?: MediaStreamTrack[];
+  displayName?: string;
 }
 
 export class SettingsComp extends Component<SettingsProps, SettingsState> {
@@ -30,9 +31,11 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
 
   constructor(props: SettingsProps) {
     super(props);
+    const settings = getSettings();
     this.state = {
       audioInputs: [],
-      videoInputs: []
+      videoInputs: [],
+      displayName: settings.displayName
     }
   }
 
@@ -163,6 +166,21 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
       <Row>
         <Col sm={12} md={10} lg={8} xl={6}>
           <Form>
+            <h3>General</h3>
+            <FormGroup>
+              <Label>Display Name</Label>
+              <Input 
+                type="text"
+                defaultValue={this.state.displayName}
+                onChange={ev => {
+                  const settings = getSettings();
+                  saveSettings({
+                    defaultAudioInput: settings.defaultAudioInput,
+                    defaultVideoInput: settings.defaultVideoInput,
+                    displayName: ev.target.value
+                  })
+                }} />
+            </FormGroup>
             <h3>Default Devices</h3>
             <FormGroup>
               <Label>Camera</Label>
@@ -174,7 +192,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                   const settings = getSettings();
                   saveSettings({
                     defaultVideoInput: ev.target.value,
-                    defaultAudioInput: settings.defaultAudioInput
+                    defaultAudioInput: settings.defaultAudioInput,
+                    displayName: settings.displayName
                   })
                 }}>
                 {this.state.videoInputs.map(x => (
@@ -215,7 +234,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                   const settings = getSettings();
                   saveSettings({
                     defaultAudioInput: ev.target.value,
-                    defaultVideoInput: settings.defaultAudioInput
+                    defaultVideoInput: settings.defaultAudioInput,
+                    displayName: settings.displayName
                   })
                 }}>
                 {this.state.audioInputs.map(x => (

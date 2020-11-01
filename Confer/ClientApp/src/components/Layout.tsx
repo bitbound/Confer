@@ -6,26 +6,22 @@ import './Layout.css';
 import { Navbar, NavbarBrand } from 'reactstrap';
 import authService from './api-authorization/AuthorizeService';
 import { If } from './If';
-import { SessionDto } from '../interfaces/SessionDto';
 import { Session } from './Session';
 import { Route } from 'react-router-dom';
-import { Signaler } from '../services/SignalingService';
-import { HubConnectionState } from '@microsoft/signalr';
+import { SessionContext } from '../services/SessionContext';
 
 interface LayoutProps { }
 interface LayoutState {
-  isSession: boolean;
   isSidebarOpen: boolean;
   isSidebarFixed: boolean;
   username?: string;
-  sessionChecked: boolean;
-  sessionId?: string;
-  sessionInfo?: SessionDto;
-  connectionState?: HubConnectionState;
 }
 
 export class Layout extends Component<LayoutProps, LayoutState> {
   static displayName = Layout.name;
+  static contextType = SessionContext;
+  context!: React.ContextType<typeof SessionContext>;
+  
   subscription: number = 1;
 
   constructor(props: LayoutProps) {
@@ -33,32 +29,15 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
     this.state = {
       isSidebarOpen: this.shouldSidebarBeFixed(),
-      isSidebarFixed: this.shouldSidebarBeFixed(),
-      isSession: window.location.pathname.toLowerCase().includes("/session/"),
-      sessionChecked: false,
-      connectionState: Signaler.state,
+      isSidebarFixed: this.shouldSidebarBeFixed()
     }
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     //this.subscription = authService.subscribe(() => this.setUser());
     //this.setUser();
 
     window.addEventListener("resize", this.onWindowResized);
-
-    if (this.state.isSession) {
-      var sessionId = window.location.pathname
-        .toLowerCase()
-        .replace("/session/", "")
-        .split("/")
-        .join("");
-
-      this.setState({
-        sessionId: sessionId
-      });
-
-      await Signaler.connect(this.signalerStateChanged);
-    }
   }
 
   componentWillUnmount() {
@@ -79,13 +58,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
 
   render() {
-    if (this.state.isSession) {
-      
-      if (this.state.sessionInfo &&
-          this.state.sessionInfo.pageBackgroundColor) {
-          document.body.style.backgroundColor = this.state.sessionInfo.pageBackgroundColor;
-        }
-
+    if (this.context?.isSession) {
       return this.renderMainContent(false);
     }
 
@@ -107,11 +80,12 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
   private renderMainContent(menuVisible: boolean) {
     const {
+      isSession,
       sessionId,
       sessionChecked,
       sessionInfo,
       connectionState
-    } = this.state;
+    } = this.context;
 
     const {
       logoUrl,
@@ -119,7 +93,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
       titleBackgroundColor,
       titleText,
       titleTextColor
-    } = sessionInfo || {};
+    } = this.context.sessionInfo || {};
 
     var menuButtonClass = this.state.isSidebarOpen ?
       "navbar-toggler menu-button hidden" :
@@ -142,14 +116,15 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
             <NavbarBrand>
               <If condition={!!logoUrl}>
-                <img src={logoUrl} style={{ height: "40px" }} />
+                <img src={logoUrl} style={{ height: "40px" }} alt="Branding Logo" />
               </If>
               <If condition={!!titleText}>
                 <span style={{
-                  color: titleTextColor, 
+                  color: titleTextColor,
                   fontWeight: "bold",
-                  marginLeft: "10px" }}>
-                    {titleText}
+                  marginLeft: "10px"
+                }}>
+                  {titleText}
                 </span>
               </If>
             </NavbarBrand>
@@ -158,11 +133,11 @@ export class Layout extends Component<LayoutProps, LayoutState> {
         </header>
 
         <div className="container" style={{ maxWidth: "unset", backgroundColor: pageBackgroundColor }}>
-          <If condition={!this.state.isSession}>
+          <If condition={!isSession}>
             {this.props.children}
           </If>
 
-          <If condition={this.state.isSession}>
+          <If condition={isSession}>
             <Route path='/session/:sessionId' component={(props: any) =>
               <Session
                 sessionId={sessionId}
@@ -175,25 +150,6 @@ export class Layout extends Component<LayoutProps, LayoutState> {
         </div>
       </div>
     )
-  }
-  
-  private signalerMediaStreamReceived(stream: MediaStream) {
-
-  }
-
-  private signalerStateChanged = async (state: HubConnectionState) => {
-    this.setState({
-      connectionState: state
-    })
-
-    if (state == HubConnectionState.Connected) {
-      // TODO: Clear previous MediaStreams.
-      var sessionInfo = await Signaler.getSessionInfo(String(this.state.sessionId));
-      this.setState({
-        sessionChecked: true,
-        sessionInfo: sessionInfo
-      })
-    }
   }
 
 

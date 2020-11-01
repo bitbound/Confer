@@ -4,7 +4,8 @@ const settingsKey = "Confer_Settings";
 
 const defaultSettings = {
     defaultAudioInput: "",
-    defaultVideoInput: ""
+    defaultVideoInput: "",
+    displayName: ""
 }
 
 export function getSettings(): Settings {

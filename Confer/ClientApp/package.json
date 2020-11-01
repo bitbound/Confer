@@ -36,7 +36,10 @@
     "nan": "^2.14.1"
   },
   "eslintConfig": {
-    "extends": "react-app"
+    "extends": "react-app",
+    "rules": {
+      "eqeqeq": "off"
+  }
   },
   "scripts": {
     "start": "rimraf ./build && react-scripts start",

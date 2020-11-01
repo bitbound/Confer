@@ -5,4 +5,5 @@ export interface SessionDto {
     titleText: string;
     logoUrl: string;
     pageBackgroundColor: string;
+    pageTextColor: string;
 }

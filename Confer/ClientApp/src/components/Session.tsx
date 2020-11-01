@@ -2,6 +2,7 @@ import { HubConnectionState } from "@microsoft/signalr";
 import React, { Component } from "react";
 import { SessionDto } from "../interfaces/SessionDto";
 import { LoadingAnimation } from "./LoadingAnimation";
+import { SessionContext } from "../services/SessionContext";
 
 interface SessionProps {
     sessionChecked: boolean;
@@ -14,13 +15,16 @@ interface SessionState {
 }
 
 export class Session extends Component<SessionProps, SessionState> {
+    static contextType = SessionContext;
+    context!: React.ContextType<typeof SessionContext>;
+
     render() {
         const {
             sessionId,
             sessionChecked,
             sessionInfo,
             connectionState
-        } = this.props;
+        } = this.context;
 
         switch (connectionState) {
             case HubConnectionState.Connecting:
@@ -56,7 +60,7 @@ export class Session extends Component<SessionProps, SessionState> {
 
         return (
             <div>
-
+                <h2 className="text-center">Session found.</h2>
             </div>
         )
     }

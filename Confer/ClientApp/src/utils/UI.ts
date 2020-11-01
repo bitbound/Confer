@@ -5,6 +5,10 @@ export enum WindowSize {
 }
 
 export function getWindowSize() : WindowSize {
+    if (!window.matchMedia) {
+        return WindowSize.Medium;
+    }
+    
     if (matchMedia("(max-width: 576px)").matches){
         return WindowSize.Small;
     }

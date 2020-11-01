@@ -57,6 +57,7 @@ namespace Confer
             });
 
             services.AddSingleton<ISessionManager, SessionManager>();
+            services.AddScoped<IAppSettings, AppSettings>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
