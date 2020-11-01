@@ -33,6 +33,11 @@ namespace Confer.Services
 
         public bool TryGetSession(string sessionId, out ActiveSession session)
         {
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                session = null;
+                return false;
+            }
             return _sessions.TryGetValue(sessionId, out session);
         }
 

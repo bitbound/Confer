@@ -5,9 +5,11 @@ import {
   FormGroup,
   Input,
   Label,
+  Progress,
   Row
 } from 'reactstrap';
 import { getSettings, saveSettings } from '../services/SettingsService';
+import { enumerateAudioDevices, enumerateVideoDevices, loadAudioDevice, loadVideoDevice } from '../utils/MediaHelper';
 import { If } from './If';
 
 const settings = getSettings();
@@ -24,10 +26,15 @@ interface SettingsState {
   videoTracks?: MediaStreamTrack[];
   audioTrack?: MediaStreamTrack[];
   displayName?: string;
+  audioContext?: AudioContext;
+  audioProcessor?: ScriptProcessorNode;
+  audioStreamSource?: MediaStreamAudioSourceNode;
 }
 
 export class SettingsComp extends Component<SettingsProps, SettingsState> {
   static displayName = SettingsComp.name;
+
+  private audioLevelProgress: React.RefObject<HTMLProgressElement>;
 
   constructor(props: SettingsProps) {
     super(props);
@@ -37,126 +44,99 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
       videoInputs: [],
       displayName: settings.displayName
     }
+    this.audioLevelProgress = React.createRef();
   }
 
   componentDidMount() {
-   this.initAudioDevices();
+    this.initAudioDevices();
 
-   this.initVideoDevices();
+    this.initVideoDevices();
   }
 
-  initAudioDevices() {
+  async initAudioDevices() {
     try {
-      navigator.mediaDevices.getUserMedia({
-        audio: true,
-      })
-        .then(stream => {
-          navigator.mediaDevices.enumerateDevices()
-            .then(devices => {
-              let mics = devices.filter(x => x.kind == "audioinput");
-              this.setState({
-                audioInputs: mics
-              });
-  
-              let selectedAudio = mics.find(x =>
-                x.deviceId == settings.defaultAudioInput &&
-                mics.some(mic => mic.deviceId == x.deviceId)) || mics[0];
-  
-              if (selectedAudio) {
-                this.setState({
-                  selectedAudioInput: selectedAudio.deviceId,
-                })
-                this.loadAudioDevice(selectedAudio.deviceId);
-              }
-            })
-            .catch(reason => {
-              console.error(reason);
-              alert("Failed to get audio devices.  Make sure this site has permission.");
-            });
-        })
-        .catch(error => {
-          console.error(error);
-          alert("Failed to get audio devices.");
-        })
+      let mics = await enumerateAudioDevices();
+      this.setState({
+        audioInputs: mics
+      });
+
+      let selectedAudio = mics.find(x =>
+        x.deviceId == settings.defaultAudioInput &&
+        mics.some(mic => mic.deviceId == x.deviceId)) || mics[0];
+
+      if (selectedAudio) {
+        this.loadSelectedAudioDevice(selectedAudio.deviceId);
+      }
     }
-    catch(ex) {
+    catch (ex) {
       console.error(ex);
       alert("Failed to initialize audio devices.");
     }
   }
 
-  initVideoDevices() {
+  async initVideoDevices() {
     try {
-      navigator.mediaDevices.getUserMedia({
-        video: true
-      })
-        .then(stream => {
-          navigator.mediaDevices.enumerateDevices()
-            .then(devices => {
-              let cameras = devices.filter(x => x.kind == "videoinput");
-              this.setState({
-                videoInputs: cameras
-              });
-  
-              let selectedVideo = cameras.find(x =>
-                x.deviceId == settings.defaultVideoInput &&
-                cameras.some(cam => cam.deviceId == x.deviceId)) || cameras[0];
-  
-              if (selectedVideo) {
-                this.setState({
-                  selectedVideoInput: selectedVideo.deviceId,
-                })
-                this.loadVideoDevice(selectedVideo.deviceId);
-              }
-            })
-            .catch(reason => {
-              console.error(reason);
-              alert("Failed to get video devices.  Make sure this site has permission.");
-            });
-        })
-        .catch(error => {
-          console.error(error);
-          alert("Failed to get video devices.");
-        })
+      let cameras = await enumerateVideoDevices();
+      this.setState({
+        videoInputs: cameras
+      });
+
+      let selectedVideo = cameras.find(x =>
+        x.deviceId == settings.defaultVideoInput &&
+        cameras.some(cam => cam.deviceId == x.deviceId)) || cameras[0];
+
+      if (selectedVideo) {
+        this.loadSelectedVideoDevice(selectedVideo.deviceId);
+      }
     }
-    catch(ex) {
+    catch (ex) {
       console.error(ex);
       alert("Failed to initialize video devices.");
     }
   }
 
-  loadAudioDevice(deviceId: string) {
-    navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: {
-          exact: deviceId
+  loadSelectedAudioDevice(deviceId: string) {
+    loadAudioDevice(deviceId).then(audioStream => {
+      let audioContext = new AudioContext();
+      let scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+      scriptProcessor.addEventListener("audioprocess", ev => {
+        if (this.audioLevelProgress.current) {
+        const input = ev.inputBuffer.getChannelData(0);
+        let sum = 0.0;
+        for (var i = 0; i < input.length; ++i) {
+          sum += input[i] * input[i];
         }
-      },
-      video: false
-    }).then(audioStream => {
+        let audioLevel = Math.sqrt(sum / input.length);
+        this.audioLevelProgress.current.value = audioLevel * 2;
+        }
+      });
+
+      let streamSource = audioContext.createMediaStreamSource(audioStream);
+      streamSource.connect(scriptProcessor);
+      scriptProcessor.connect(audioContext.destination);
+
       this.setState({
-        audioTrack: audioStream.getAudioTracks()
-      })
+        selectedAudioInput: deviceId,
+        audioTrack: audioStream.getAudioTracks(),
+        audioContext: audioContext,
+        audioProcessor: scriptProcessor,
+        audioStreamSource: streamSource
+      });
+
     }).catch(error => {
       console.error(error);
       alert("Failed to get audio stream.");
     })
   }
 
-  loadVideoDevice(deviceId: string) {
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        deviceId: {
-          exact: deviceId
-        }
-      },
-      audio: false
-    }).then(videoStream => {
+  loadSelectedVideoDevice(deviceId: string) {
+    loadVideoDevice(deviceId).then(videoStream => {
       this.setState({
+        selectedVideoInput: deviceId,
         videoTracks: videoStream.getVideoTracks()
       })
-    }).catch(error => {
-      console.error(error);
+    }).catch(reason => {
+      console.error(reason);
       alert("Failed to get video stream.");
     })
   }
@@ -169,7 +149,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             <h3>General</h3>
             <FormGroup>
               <Label>Display Name</Label>
-              <Input 
+              <Input
                 type="text"
                 defaultValue={this.state.displayName}
                 onChange={ev => {
@@ -188,7 +168,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 className={"form-control"}
                 defaultValue={this.state.selectedVideoInput}
                 onChange={ev => {
-                  this.loadVideoDevice(ev.target.value);
+                  this.loadSelectedVideoDevice(ev.target.value);
                   const settings = getSettings();
                   saveSettings({
                     defaultVideoInput: ev.target.value,
@@ -210,7 +190,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             <If condition={!!this.state.videoTracks}>
               <div>
                 <video
-                  style={{width: "100%"}}
+                  style={{ width: "100%" }}
                   ref={ref => {
                     if (ref) {
                       if (this.state.videoTracks) {
@@ -230,7 +210,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 className={"form-control"}
                 defaultValue={this.state.selectedAudioInput}
                 onChange={ev => {
-                  this.loadAudioDevice(ev.target.value);
+                  this.loadSelectedAudioDevice(ev.target.value);
                   const settings = getSettings();
                   saveSettings({
                     defaultAudioInput: ev.target.value,
@@ -247,6 +227,16 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                   </option>
                 ))}
               </select>
+            </FormGroup>
+            <FormGroup>
+              <progress
+                ref={this.audioLevelProgress}
+                value={0}
+                style={{
+                  height: "25px",
+                  width: "100%"
+                }}
+              />
             </FormGroup>
           </Form>
         </Col>

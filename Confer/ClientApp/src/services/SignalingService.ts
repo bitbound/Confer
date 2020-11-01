@@ -1,4 +1,5 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { SdpMessage } from "../interfaces/SdpMessage";
 import { SessionDto } from "../interfaces/SessionDto";
 import { EventEmitterEx } from "../utils/EventEmitterEx";
 
@@ -7,6 +8,8 @@ class SignalingService {
   private initialized: boolean = false;
 
   public readonly onConnectionStateChanged = new EventEmitterEx<HubConnectionState>();
+  public readonly onSdpReceived = new EventEmitterEx<SdpMessage>();
+  public readonly onPeerLeft = new EventEmitterEx<string>();
   
   public connect(): Promise<boolean> {
     if (this.initialized) {
@@ -25,11 +28,15 @@ class SignalingService {
         .withAutomaticReconnect()
         .build();
 
-      this.connection.on("Sdp", (peerId: string, description: RTCSessionDescriptionInit) => {
-        this.receiveSdp(peerId, description);
+      this.connection.on("Sdp", (peerId: string, displayName: string, description: RTCSessionDescriptionInit) => {
+        this.onSdpReceived.publish({
+          description: description,
+          displayName: displayName,
+          signalingId: peerId
+        })
       });
-      this.connection.on("ParticipantLeft", (peerId: string) => {
-        // TODO
+      this.connection.on("PeerLeft", (peerId: string) => {
+        this.onPeerLeft.publish(peerId);
       });
 
       this.connection.onclose(() => this.onConnectionStateChanged.publish(HubConnectionState.Disconnected));
@@ -60,32 +67,14 @@ class SignalingService {
   public joinSession(sessionId: string) : Promise<SessionDto | undefined> {
     return this.connection?.invoke("JoinSession", sessionId) || Promise.resolve(undefined);
   }
-  
-  private async receiveSdp(peerId: string, description: RTCSessionDescriptionInit) {
-    // TODO: Emit
-    if (description.type == "offer") {
-      // var iceServers = await Signaler.getIceServers();
-      // var pc = new RTCPeerConnection({
-      //   iceServers: iceServers
-      // });
-      // await pc.setRemoteDescription(description);
-      // var answer = await pc.createAnswer();
-      // await pc.setLocalDescription(answer);
-      // this.connection?.invoke("Sdp", pc.localDescription);
-      
+
+  public sendSdp(signalingId: string, displayName: string, localDescription: RTCSessionDescription | null) {
+    if (localDescription == null){
+      console.error("Session description is null.");
+      return;
     }
-    else {
-      // var peer = this.peerConnections.find(x=>x.peerId == peerId);
-      // if (!peer) {
-      //   console.error(`Unable to find peer with ID ${peerId}.`);
-      //   return;
-      // }
-      // await peer.peerConnection.setRemoteDescription(description);
-    }
-  }
-  
-  public async sendSdp(signalingId: string, localDescription: RTCSessionDescription | null) {
-    throw new Error('Method not implemented.');
+
+    return this.connection?.invoke("SendSdp", signalingId, displayName, localDescription);
   }
 }
 

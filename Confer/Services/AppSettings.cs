@@ -9,17 +9,17 @@ namespace Confer.Services
 {
     public interface IAppSettings
     {
-        ClientIceServer[] IceServers { get; }
+        IceServer[] IceServers { get; }
     }
 
     public class AppSettings : IAppSettings
     {
         private readonly IConfiguration _config;
 
-        private readonly ClientIceServer[] fallbackIceServers = new ClientIceServer[]
+        private readonly IceServer[] fallbackIceServers = new IceServer[]
                 {
-            new ClientIceServer() { Urls = "stun: stun.l.google.com:19302"},
-            new ClientIceServer() { Urls = "stun: stun4.l.google.com:19302"}
+            new IceServer() { Urls = "stun: stun.l.google.com:19302"},
+            new IceServer() { Urls = "stun: stun4.l.google.com:19302"}
         };
 
         public AppSettings(IConfiguration config)
@@ -27,6 +27,6 @@ namespace Confer.Services
             _config = config;
         }
 
-        public ClientIceServer[] IceServers => _config.GetSection("IceServers").Get<ClientIceServer[]>() ?? fallbackIceServers;
+        public IceServer[] IceServers => _config.GetSection("IceServers").Get<IceServer[]>() ?? fallbackIceServers;
     }
 }

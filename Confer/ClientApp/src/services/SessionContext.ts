@@ -5,6 +5,9 @@ import { Signaler } from './SignalingService';
 import { EventEmitter } from 'events';
 import { Peer } from '../interfaces/Peer';
 import { EventEmitterEx } from '../utils/EventEmitterEx';
+import { SdpMessage } from '../interfaces/SdpMessage';
+import { getSettings } from './SettingsService';
+import { loadVideoDevice } from '../utils/MediaHelper';
 
 
 export class SessionContextState {
@@ -28,34 +31,37 @@ export class SessionContextState {
         .split("/")
         .join("");
 
-      Signaler.onConnectionStateChanged.subscribe(this.signalerStateChanged);
+      Signaler.onConnectionStateChanged.subscribe(this.handleConnectionStateChanged);
+      Signaler.onPeerLeft.subscribe(this.handlePeerLeft);
+      Signaler.onSdpReceived.subscribe(this.handleSdpReceived);
       Signaler.connect();
     }
   }
+
 
 
   public update() {
     this.stateUpdated.publish(this);
   }
 
-  private async sendOffers() {
-    const iceServers = await Signaler.getIceServers();
-    this.peers.forEach(async x => {
-      x.peerConnection = new RTCPeerConnection({
-        iceServers: iceServers
-      });
+  private configurePeerConnection = (pc: RTCPeerConnection, peerId: string) => {
+    pc.addEventListener("icecandidate", candidate => {
 
-      x.localSdp = await x.peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-        voiceActivityDetection: true
-      });
+    });
+    pc.addEventListener("connectionstatechange", state => {
+      console.log("PeerConnection state changed to: ", state);
+    });
+    pc.addEventListener("negotiationneeded", () => {
 
-      Signaler.sendSdp(x.signalingId, x.peerConnection.localDescription);
-    })
+    });
+    pc.addEventListener("track", ev => {
+      
+    });
   }
 
-  private signalerStateChanged = async (connectionState: HubConnectionState) => {
+  
+  private handleConnectionStateChanged = async (connectionState: HubConnectionState) => {
+    console.log("Connection state changed: ", connectionState);
     this.connectionState = connectionState;
     this.update();
 
@@ -75,6 +81,66 @@ export class SessionContextState {
     }
   }
 
+  private handlePeerLeft = (peerId: string) => {
+    console.log("Peer left: ", peerId);
+  }
+
+  private handleSdpReceived = async (sdpMessage: SdpMessage) => {
+    console.log("Received SDP: ", sdpMessage);
+    if (sdpMessage.description.type == "offer") {
+      var iceServers = await Signaler.getIceServers();
+
+      var pc = new RTCPeerConnection({
+        iceServers: iceServers
+      });
+      
+      this.configurePeerConnection(pc, sdpMessage.signalingId);
+
+      await pc.setRemoteDescription(sdpMessage.description);
+      var answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      this.peers.push({
+        signalingId: sdpMessage.signalingId,
+        displayName: sdpMessage.displayName
+
+      })
+      Signaler.sendSdp(sdpMessage.signalingId, getSettings().displayName, pc.localDescription);
+    }
+    else if (sdpMessage.description.type == "answer") {
+      var peer = this.peers.find(x=>x.signalingId == sdpMessage.signalingId);
+      if (!peer) {
+        console.error(`Unable to find peer with ID ${sdpMessage.signalingId}.`);
+        return;
+      }
+      await peer.peerConnection?.setRemoteDescription(sdpMessage.description);
+    }
+    else {
+      console.error("Unhandled SDP type.", sdpMessage);
+    }
+  }
+
+  private async sendOffers() {
+    const iceServers = await Signaler.getIceServers();
+    this.peers.forEach(async x => {
+      x.peerConnection = new RTCPeerConnection({
+        iceServers: iceServers
+      });
+
+      this.configurePeerConnection(x.peerConnection, x.signalingId);
+
+      x.localSdp = await x.peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+        voiceActivityDetection: true
+      });
+
+      await x.peerConnection?.setLocalDescription(x.localSdp);
+
+      console.log("Creating offer for: ", x);
+      Signaler.sendSdp(x.signalingId, getSettings().displayName, x.peerConnection.localDescription);
+    })
+  }
+
   private updatePeers = async () => {
     var peerIds = await Signaler.getPeers();
 
@@ -83,13 +149,11 @@ export class SessionContextState {
       peerIds.some(y => x.signalingId == y && x.peerConnection?.connectionState == "connected"));
 
     // Add missing peers.
-    if (peerIds.length > 0) {
-      peerIds.forEach(x => {
-        if (!this.peers.some(y => y.signalingId == x)) {
-          this.peers.push({ signalingId: x });
-        }
-      })
-    }
+    peerIds.forEach(x => {
+      if (!this.peers.some(y => y.signalingId == x)) {
+        this.peers.push({ signalingId: x });
+      }
+    })
   }
 }
 

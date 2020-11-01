@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Confer.Models
 {
-    public class ClientIceServer
+    public class IceServer
     {
         public string Credential { get; set; }
         public string Urls { get; set; }

@@ -56,12 +56,16 @@ namespace Confer.Services
             
             if (!string.IsNullOrWhiteSpace(SessionId))
             {
-                await Clients.Group(SessionId).SendAsync("ParticipantLeft", Context.ConnectionId);
+                await Clients.Group(SessionId).SendAsync("PeerLeft", Context.ConnectionId);
+                if (_sessionManager.TryGetSession(SessionId, out var session))
+                {
+                    session.Participants.Remove(Context.ConnectionId, out _);
+                }
             }
             await base.OnDisconnectedAsync(exception);
         }
 
-        public ClientIceServer[] GetIceServers()
+        public IceServer[] GetIceServers()
         {
             return _appSettings.IceServers;
         }
@@ -100,6 +104,11 @@ namespace Confer.Services
                 TitleText = session.TitleText,
                 TitleTextColor = session.TitleTextColor
             };
+        }
+
+        public Task SendSdp(string signalingId, string displayName, RTCSessionDescriptionInit sessionDescription)
+        {
+            return Clients.Client(signalingId).SendAsync("Sdp", Context.ConnectionId, displayName, sessionDescription);
         }
     }
 }
