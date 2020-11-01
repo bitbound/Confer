@@ -1,7 +1,7 @@
 export interface Peer {
     signalingId: string;
     displayName?: string;
-    mediaStream?: MediaStream;
+    remoteMediaStream?: MediaStream;
     peerConnection?: RTCPeerConnection;
     localSdp?: RTCSessionDescriptionInit;
 }

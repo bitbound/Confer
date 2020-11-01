@@ -56,7 +56,6 @@ namespace Confer.Services
             
             if (!string.IsNullOrWhiteSpace(SessionId))
             {
-                await Clients.Group(SessionId).SendAsync("PeerLeft", Context.ConnectionId);
                 if (_sessionManager.TryGetSession(SessionId, out var session))
                 {
                     session.Participants.Remove(Context.ConnectionId, out _);
@@ -104,6 +103,11 @@ namespace Confer.Services
                 TitleText = session.TitleText,
                 TitleTextColor = session.TitleTextColor
             };
+        }
+
+        public Task SendIceCandidate(string signalingId, string jsonCandidate)
+        {
+            return Clients.Client(signalingId).SendAsync("IceCandidate", Context.ConnectionId, jsonCandidate);
         }
 
         public Task SendSdp(string signalingId, string displayName, RTCSessionDescriptionInit sessionDescription)

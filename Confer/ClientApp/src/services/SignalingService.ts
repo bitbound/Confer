@@ -1,15 +1,17 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { IceCandidateMessage } from "../interfaces/IceCandidateMessage";
 import { SdpMessage } from "../interfaces/SdpMessage";
 import { SessionDto } from "../interfaces/SessionDto";
 import { EventEmitterEx } from "../utils/EventEmitterEx";
 
 class SignalingService {
+
   private connection?: HubConnection;
   private initialized: boolean = false;
 
   public readonly onConnectionStateChanged = new EventEmitterEx<HubConnectionState>();
   public readonly onSdpReceived = new EventEmitterEx<SdpMessage>();
-  public readonly onPeerLeft = new EventEmitterEx<string>();
+  public readonly onIceCandidateReceived = new EventEmitterEx<IceCandidateMessage>();
   
   public connect(): Promise<boolean> {
     if (this.initialized) {
@@ -35,9 +37,15 @@ class SignalingService {
           signalingId: peerId
         })
       });
-      this.connection.on("PeerLeft", (peerId: string) => {
-        this.onPeerLeft.publish(peerId);
-      });
+      this.connection.on("IceCandidate", (peerId: string, jsonCandidate: string) => {
+        if (!jsonCandidate) {
+          return;
+        }
+        this.onIceCandidateReceived.publish({
+          iceCandidate: JSON.parse(jsonCandidate),
+          peerId: peerId
+        })
+      })
 
       this.connection.onclose(() => this.onConnectionStateChanged.publish(HubConnectionState.Disconnected));
       this.connection.onreconnecting(() => this.onConnectionStateChanged.publish(HubConnectionState.Reconnecting));
@@ -66,6 +74,11 @@ class SignalingService {
 
   public joinSession(sessionId: string) : Promise<SessionDto | undefined> {
     return this.connection?.invoke("JoinSession", sessionId) || Promise.resolve(undefined);
+  }
+
+  public sendIceCandidate(peerId: string, candidate: RTCIceCandidate | null) {
+    var jsonCandidate = candidate ? JSON.stringify(candidate) : candidate;
+    return this.connection?.invoke("SendIceCandidate", peerId, jsonCandidate);
   }
 
   public sendSdp(signalingId: string, displayName: string, localDescription: RTCSessionDescription | null) {
