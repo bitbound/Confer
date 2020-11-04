@@ -237,6 +237,8 @@ export class SessionContextState {
         console.error(`Unable to find peer with ID ${sdpMessage.signalingId}.`);
         return;
       }
+      peer.displayName = sdpMessage.displayName;
+      peer.signalingId = sdpMessage.signalingId;
       await peer.peerConnection?.setRemoteDescription(sdpMessage.description);
     }
     else {

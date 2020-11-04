@@ -3,6 +3,7 @@ import React, { Component, CSSProperties } from "react";
 import { LoadingAnimation } from "./LoadingAnimation";
 import { SessionContext } from "../services/SessionContext";
 import { If } from "./If";
+import { getSettings } from "../services/SettingsService";
 
 interface SessionProps {
 
@@ -10,6 +11,7 @@ interface SessionProps {
 
 interface SessionState {
   mainViewingStream?: MediaStream;
+  selectedName?: string;
 }
 
 export class Session extends Component<SessionProps, SessionState> {
@@ -19,7 +21,8 @@ export class Session extends Component<SessionProps, SessionState> {
   constructor(props: SessionProps) {
     super(props);
     this.state = {
-      mainViewingStream: undefined
+      mainViewingStream: undefined,
+      selectedName: ""
     }
   }
 
@@ -76,37 +79,24 @@ export class Session extends Component<SessionProps, SessionState> {
       )
     }
 
-    let viewStream = this.state.mainViewingStream;
+    let {
+      mainViewingStream,
+      selectedName
+    } = this.state;
 
-    if (!viewStream && peers?.length > 0) {
-      viewStream = peers[0].remoteMediaStream
+    if (!mainViewingStream && peers?.length > 0) {
+      mainViewingStream = peers[0].remoteMediaStream
+      selectedName = peers[0].displayName;
     }
 
-    return (
-      <div style={{color: sessionInfo?.pageTextColor, ...SessionGrid}}>
-        <div style={ThumbnailWrapper}>
-          <video
-            key={"thumbnail-self"}
-            style={ThumbnailVideo}
-            autoPlay={true}
-            onLoadedMetadata={ev => {
-              ev.currentTarget.play();
-            }}
-            onClick={ev => {
-              this.setState({
-                mainViewingStream: ev.currentTarget.srcObject as MediaStream
-              })
-            }}
-            ref={ref => {
-              if (ref && localMediaStream) {
-                console.log("Set local media stream.");
-                ref.srcObject = localMediaStream
-              }
-            }} />
+    let settings = getSettings();
 
-          {peers.map(x => (
+    return (
+      <div style={{ color: sessionInfo?.pageTextColor, ...SessionGrid }}>
+        <div style={ThumbnailBanner}>
+          <div style={ThumbnailVideoWrapper}>
             <video
-              key={`thumbnail-${x.signalingId}`}
+              key={"thumbnail-self"}
               style={ThumbnailVideo}
               autoPlay={true}
               onLoadedMetadata={ev => {
@@ -114,47 +104,85 @@ export class Session extends Component<SessionProps, SessionState> {
               }}
               onClick={ev => {
                 this.setState({
-                  mainViewingStream: ev.currentTarget.srcObject as MediaStream
+                  mainViewingStream: ev.currentTarget.srcObject as MediaStream,
+                  selectedName: settings.displayName
                 })
               }}
               ref={ref => {
-                if (ref && x.remoteMediaStream) {
-                  console.log("Set remote media stream for peer ", x.signalingId);
-                  ref.srcObject = x.remoteMediaStream
+                if (ref && localMediaStream) {
+                  console.log("Set local media stream.");
+                  ref.srcObject = localMediaStream
                 }
               }} />
+            <div style={Nameplate}>
+              <span style={{}}>
+                {settings.displayName}
+              </span>
+            </div>
+          </div>
+
+
+          {peers.map(x => (
+            <div style={ThumbnailVideoWrapper}>
+              <video
+                key={`thumbnail-${x.signalingId}`}
+                style={ThumbnailVideo}
+                autoPlay={true}
+                onLoadedMetadata={ev => {
+                  ev.currentTarget.play();
+                }}
+                onClick={ev => {
+                  this.setState({
+                    mainViewingStream: ev.currentTarget.srcObject as MediaStream,
+                    selectedName: x.displayName
+                  })
+                }}
+                ref={ref => {
+                  if (ref && x.remoteMediaStream) {
+                    console.log("Set remote media stream for peer ", x.signalingId);
+                    ref.srcObject = x.remoteMediaStream
+                  }
+                }} />
+              <div style={Nameplate}>
+                {x.displayName}
+              </div>
+            </div>
           ))}
         </div>
 
-        <div>
-          <If condition={!!viewStream}>
+        <div style={{ position: "relative" }}>
+          <If condition={!!mainViewingStream}>
             <video
               autoPlay={true}
               onLoadedMetadata={ev => {
                 ev.currentTarget.play();
               }}
               ref={ref => {
-                if (ref && viewStream) {
-                  ref.srcObject = viewStream;
+                if (ref && mainViewingStream) {
+                  ref.srcObject = mainViewingStream;
                 }
               }}
               placeholder="Something"
               style={{
-                maxWidth: "100%",
+                position: "absolute",
+                width: "100%",
                 height: "100%",
                 objectFit: "cover"
               }}
             />
+            <div style={Nameplate}>
+              {selectedName}
+            </div>
           </If>
 
-          <If condition={!viewStream}>
-            <h4 className="text-center" style={{ marginTop: "100px"}}>
+          <If condition={!mainViewingStream}>
+            <h4 className="text-center" style={{ marginTop: "100px" }}>
               Select a video feed.
             </h4>
           </If>
         </div>
 
-        <div style={{ display: "grid", gridTemplateRows: "1fr 50px", rowGap: "5px" }}>
+        <div style={{ display: "grid", gridTemplateRows: "1fr auto", rowGap: "5px" }}>
           <div style={ChatMessagesWindow} />
           <input placeholder="Type a chat message" className="form-control"></input>
         </div>
@@ -174,17 +202,24 @@ const SessionGrid = {
   columnGap: "10px"
 } as CSSProperties;
 
-const ThumbnailWrapper = {
+const ThumbnailBanner = {
   display: "flex",
   flexDirection: "row",
   overflowX: "auto",
   gridColumn: "1 / span 2"
 } as CSSProperties;
 
-const ThumbnailVideo = {
+const ThumbnailVideoWrapper = {
+  position: "relative",
   height: "100px",
   width: "130px",
   marginRight: "10px",
+} as CSSProperties;
+
+const ThumbnailVideo = {
+  position: "absolute",
+  height: "100px",
+  width: "130px",
   objectFit: "cover",
   cursor: "pointer"
 } as CSSProperties;
@@ -196,4 +231,17 @@ const ChatMessagesWindow = {
   overflowX: "hidden",
   backgroundColor: "whitesmoke",
   borderRadius: "5px"
+} as CSSProperties;
+
+const Nameplate = {
+  position: "absolute",
+  bottom: "2px",
+  right: "2px",
+  textAlign: "center",
+  color: "white",
+  backgroundColor: "rgba(0,0,0, 0.7)",
+  padding: "1px 4px",
+  userSelect: "none",
+  pointerEvents: "none",
+  borderRadius: "3px"
 } as CSSProperties;
