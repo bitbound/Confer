@@ -5,7 +5,6 @@ import { SessionDto } from "../interfaces/SessionDto";
 import { EventEmitterEx } from "../utils/EventEmitterEx";
 
 class SignalingService {
-
   private connection?: HubConnection;
   private initialized: boolean = false;
 
@@ -70,6 +69,10 @@ class SignalingService {
 
   public getPeers() : Promise<string[]> {
     return this.connection?.invoke("GetPeers") || Promise.resolve([]);
+  }
+
+  public getSessionInfo(sessionId: string) : Promise<SessionDto | undefined> {
+    return this.connection?.invoke("GetSessionInfo", sessionId) || Promise.resolve(undefined);
   }
 
   public joinSession(sessionId: string) : Promise<SessionDto | undefined> {

@@ -101,13 +101,13 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
       let scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
       scriptProcessor.addEventListener("audioprocess", ev => {
         if (this.audioLevelProgress.current) {
-        const input = ev.inputBuffer.getChannelData(0);
-        let sum = 0.0;
-        for (var i = 0; i < input.length; ++i) {
-          sum += input[i] * input[i];
-        }
-        let audioLevel = Math.sqrt(sum / input.length);
-        this.audioLevelProgress.current.value = audioLevel * 2;
+          const input = ev.inputBuffer.getChannelData(0);
+          let sum = 0.0;
+          for (var i = 0; i < input.length; ++i) {
+            sum += input[i] * input[i];
+          }
+          let audioLevel = Math.sqrt(sum / input.length);
+          this.audioLevelProgress.current.value = audioLevel * 2;
         }
       });
 
@@ -145,100 +145,100 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     return (
       <Row>
         <Col sm={12} md={10} lg={8} xl={6}>
-          <Form>
-            <h3>General</h3>
-            <FormGroup>
-              <Label>Display Name</Label>
-              <Input
-                type="text"
-                defaultValue={this.state.displayName}
-                onChange={ev => {
-                  const settings = getSettings();
-                  saveSettings({
-                    defaultAudioInput: settings.defaultAudioInput,
-                    defaultVideoInput: settings.defaultVideoInput,
-                    displayName: ev.target.value
-                  })
-                }} />
-            </FormGroup>
-            <h3>Default Devices</h3>
-            <FormGroup>
-              <Label>Camera</Label>
-              <select
-                className={"form-control"}
-                defaultValue={this.state.selectedVideoInput}
-                onChange={ev => {
-                  this.loadSelectedVideoDevice(ev.target.value);
-                  const settings = getSettings();
-                  saveSettings({
-                    defaultVideoInput: ev.target.value,
-                    defaultAudioInput: settings.defaultAudioInput,
-                    displayName: settings.displayName
-                  })
-                }}>
-                {this.state.videoInputs.map(x => (
-                  <option
-                    key={x.deviceId}
-                    value={x.deviceId}>
+          <h3>General</h3>
+          <FormGroup>
+            <Label>Display Name</Label>
+            <Input
+              type="text"
+              defaultValue={this.state.displayName}
+              onChange={ev => {
+                const settings = getSettings();
+                saveSettings({
+                  defaultAudioInput: settings.defaultAudioInput,
+                  defaultVideoInput: settings.defaultVideoInput,
+                  displayName: ev.target.value
+                })
+              }} />
+          </FormGroup>
+          <h3>Default Devices</h3>
+          <FormGroup>
+            <Label>Camera</Label>
+            <select
+              className={"form-control"}
+              defaultValue={this.state.selectedVideoInput}
+              onChange={ev => {
+                this.loadSelectedVideoDevice(ev.target.value);
+                const settings = getSettings();
+                console.log("Saving default cam ID ", ev.target.value);
+                saveSettings({
+                  defaultVideoInput: ev.target.value,
+                  defaultAudioInput: settings.defaultAudioInput,
+                  displayName: settings.displayName
+                })
+              }}>
+              {this.state.videoInputs.map(x => (
+                <option
+                  key={x.deviceId}
+                  value={x.deviceId}>
 
-                    {x.label}
-                  </option>
-                ))}
-              </select>
-            </FormGroup>
+                  {x.label}
+                </option>
+              ))}
+            </select>
+          </FormGroup>
 
-            <If condition={!!this.state.videoTracks}>
-              <div>
-                <video
-                  style={{ width: "100%" }}
-                  ref={ref => {
-                    if (ref) {
-                      if (this.state.videoTracks) {
-                        ref.srcObject = new MediaStream(this.state.videoTracks);
-                      }
+          <If condition={!!this.state.videoTracks}>
+            <div>
+              <video
+                style={{ width: "100%" }}
+                ref={ref => {
+                  if (ref) {
+                    if (this.state.videoTracks) {
+                      ref.srcObject = new MediaStream(this.state.videoTracks);
                     }
-                  }}
-                  onLoadedMetadata={e => {
-                    (e.target as HTMLVideoElement).play();
-                  }} />
-              </div>
-            </If>
-
-            <FormGroup>
-              <Label>Microphones</Label>
-              <select
-                className={"form-control"}
-                defaultValue={this.state.selectedAudioInput}
-                onChange={ev => {
-                  this.loadSelectedAudioDevice(ev.target.value);
-                  const settings = getSettings();
-                  saveSettings({
-                    defaultAudioInput: ev.target.value,
-                    defaultVideoInput: settings.defaultAudioInput,
-                    displayName: settings.displayName
-                  })
-                }}>
-                {this.state.audioInputs.map(x => (
-                  <option
-                    key={x.deviceId}
-                    value={x.deviceId}>
-
-                    {x.label}
-                  </option>
-                ))}
-              </select>
-            </FormGroup>
-            <FormGroup>
-              <progress
-                ref={this.audioLevelProgress}
-                value={0}
-                style={{
-                  height: "25px",
-                  width: "100%"
+                  }
                 }}
-              />
-            </FormGroup>
-          </Form>
+                onLoadedMetadata={e => {
+                  (e.target as HTMLVideoElement).play();
+                }} />
+            </div>
+          </If>
+
+          <FormGroup>
+            <Label>Microphones</Label>
+            <select
+              className={"form-control"}
+              defaultValue={this.state.selectedAudioInput}
+              onChange={ev => {
+                this.loadSelectedAudioDevice(ev.target.value);
+                const settings = getSettings();
+                console.log("Saving default mic ID ", ev.target.value);
+                saveSettings({
+                  defaultAudioInput: ev.target.value,
+                  defaultVideoInput: settings.defaultAudioInput,
+                  displayName: settings.displayName
+                })
+              }}>
+              {this.state.audioInputs.map(x => (
+                <option
+                  key={x.deviceId}
+                  value={x.deviceId}>
+
+                  {x.label}
+                </option>
+              ))}
+            </select>
+          </FormGroup>
+          <FormGroup>
+            <progress
+              ref={this.audioLevelProgress}
+              value={0}
+              style={{
+                height: "25px",
+                width: "100%"
+              }}
+            />
+          </FormGroup>
         </Col>
       </Row>
     );

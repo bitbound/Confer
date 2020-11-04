@@ -14,10 +14,10 @@ export class SessionContextState {
   public localAudioDeviceId?: string;
   public localVideoDeviceId?: string;
   public localMediaStream: MediaStream = new MediaStream();
-  public mediaFailure: boolean = false;
   public sessionChecked: boolean = false;
   public sessionId?: string;
   public sessionInfo?: SessionDto;
+  public sessionJoined: boolean = false;
   public connectionState: HubConnectionState = HubConnectionState.Connecting;
   public peers: Peer[] = [];
   public readonly stateUpdated: EventEmitterEx<SessionContextState> = new EventEmitterEx();
@@ -47,12 +47,29 @@ export class SessionContextState {
   }
 
 
+  public joinSession = async () => {
+    this.getSessionInfo(true);
 
-  public update() {
+    if (this.sessionInfo) {
+      await this.updatePeers();
+      await this.sendOffers();
+      this.update();
+    }
+  }
+
+  public update = () => {
     this.stateUpdated.publish(this);
   }
 
+  private addLocalMediaTracks = (pc: RTCPeerConnection) => {
+    console.log("Adding tracks");
+    this.localMediaStream.getTracks().forEach(track => {
+      pc?.addTrack(track, this.localMediaStream);
+    });
+  }
+
   private configurePeerConnection = (pc: RTCPeerConnection, peerId: string) => {
+    console.log("Configure peer connection for ID: ", peerId);
     pc.addEventListener("icecandidate", ev => {
       if (ev.candidate) {
         Signaler.sendIceCandidate(peerId, ev.candidate);
@@ -64,16 +81,25 @@ export class SessionContextState {
           pc.connectionState == "failed") {
             console.log("Peer left: ", peerId);
             this.peers = this.peers.filter(x => x.signalingId != peerId);
-            this.update();
           }
+      this.update();
     });
-    pc.addEventListener("negotiationneeded", async () => {
-      console.log("Negotation needed.");
-      const iceServers = await Signaler.getIceServers();
-      const peer = this.peers.find(x => x.signalingId == peerId);
-      if (peer) {
-        //this.sendOffer(peer, iceServers);
-      }
+    pc.addEventListener("iceconnectionstatechange", ev => {
+      console.log(`ICE connection state changed to ${pc.iceConnectionState} for peer ${peerId}.`);
+      if (pc.iceConnectionState == "failed" || 
+          pc.iceConnectionState == "closed") {
+            console.log("Peer left: ", peerId);
+            this.peers = this.peers.filter(x => x.signalingId != peerId);
+          }
+      this.update();
+    })
+    pc.addEventListener("negotiationneeded", async (ev) => {
+      // TODO: This can be re-enabled when offer collisions are handled.
+      //console.log("Negotation needed.");
+      //var offer = await pc.createOffer();
+      //await pc.setLocalDescription(offer);
+      //console.log("Sending renegotiation offer: ", pc.localDescription);
+      //await Signaler.sendSdp(peerId, getSettings().displayName, pc.localDescription);
     });
     pc.addEventListener("track", ev => {
       console.log("Track received: ", ev.track);
@@ -90,27 +116,52 @@ export class SessionContextState {
       }
       this.update();
     });
-
-    this.localMediaStream.getTracks().forEach(track => {
-      pc.addTrack(track, this.localMediaStream);
-    });
   }
 
-  private async getLocalMedia() {
+  private getLocalMedia = async () => {
+    this.localMediaStream = new MediaStream();
     try {
-      this.localMediaStream = await navigator.mediaDevices.getUserMedia({
+      let audioStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: this.localAudioDeviceId
-        },
+        }
+      });
+      audioStream.getTracks().forEach(x => {
+        this.localMediaStream.addTrack(x);
+      })
+    }
+    catch {
+      console.warn("Failed to get audio device.");
+    }
+
+    try {
+      let videoStream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: this.localVideoDeviceId
         }
       });
-      return true;
+      videoStream.getTracks().forEach(x => {
+        this.localMediaStream.addTrack(x);
+      })
     }
     catch {
-      return false;
+      console.warn("Failed to get video device.");
     }
+  }
+
+  private getSessionInfo = async (join: boolean) => {
+    var sessionInfo = join ? 
+      await Signaler.joinSession(String(this.sessionId)):
+      await Signaler.getSessionInfo(String(this.sessionId));
+
+    if (this.isSession && sessionInfo) {
+      document.body.style.backgroundColor = sessionInfo.pageBackgroundColor;
+      document.body.style.color = sessionInfo.pageTextColor;
+    }
+    this.sessionInfo = sessionInfo;
+    this.sessionChecked = true;
+    this.sessionJoined = join;
+    this.update();
   }
   
   private handleConnectionStateChanged = async (connectionState: HubConnectionState) => {
@@ -121,27 +172,14 @@ export class SessionContextState {
     if (connectionState == HubConnectionState.Connected) {
       this.peers.splice(0);
 
-      var result = await this.getLocalMedia();
+      await this.getLocalMedia();
 
-      if (!result || !this.localMediaStream) {
-        this.mediaFailure = true;
-        this.update();
+      this.update();
+      if (!this.localMediaStream?.getTracks()) {
         return;
       }
 
-      this.update();
-
-      var sessionInfo = await Signaler.joinSession(String(this.sessionId));
-      if (this.isSession && sessionInfo) {
-        document.body.style.backgroundColor = sessionInfo.pageBackgroundColor;
-        document.body.style.color = sessionInfo.pageTextColor;
-      }
-      this.sessionInfo = sessionInfo;
-      this.sessionChecked = true;
-      this.update();
-
-      await this.updatePeers();
-      await this.sendOffers();
+      this.getSessionInfo(false);
     }
   }
 
@@ -149,7 +187,15 @@ export class SessionContextState {
     console.log("ICE candidate received: ", iceMessage);
     var peer = this.peers.find(x => x.signalingId == iceMessage.peerId);
     if (peer && peer.peerConnection) {
-      peer.peerConnection.addIceCandidate(iceMessage.iceCandidate);
+      try {
+        peer.peerConnection.addIceCandidate(iceMessage.iceCandidate);
+      }
+      catch (ex) {
+        console.warn("Failed to set ICE candidate. ", ex);
+      }
+    }
+    else {
+      console.log(`Peer ID ${iceMessage.peerId} not found in `, this.peers);
     }
   }
 
@@ -158,25 +204,35 @@ export class SessionContextState {
     if (sdpMessage.description.type == "offer") {
       var iceServers = await Signaler.getIceServers();
 
-      var pc = new RTCPeerConnection({
+      var peer = this.peers.find(x=>x.signalingId == sdpMessage.signalingId);
+      var pc = peer?.peerConnection || new RTCPeerConnection({
         iceServers: iceServers
       });
-    
+      
+      if (!peer || !peer.peerConnection) {
+        this.addLocalMediaTracks(pc);
+        peer = {
+          signalingId: sdpMessage.signalingId,
+          displayName: sdpMessage.displayName,
+          peerConnection: pc
+        };
+  
+        this.peers.push(peer);
+
+        this.configurePeerConnection(pc, sdpMessage.signalingId);
+      }
+
       await pc.setRemoteDescription(sdpMessage.description);
       var answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      this.peers.push({
-        signalingId: sdpMessage.signalingId,
-        displayName: sdpMessage.displayName
 
-      })
+      console.log("Sending SDP answer to: ", sdpMessage.signalingId);
+      await Signaler.sendSdp(sdpMessage.signalingId, getSettings().displayName, pc.localDescription);
       
-      this.configurePeerConnection(pc, sdpMessage.signalingId);
-
-      Signaler.sendSdp(sdpMessage.signalingId, getSettings().displayName, pc.localDescription);
+      this.update();
     }
     else if (sdpMessage.description.type == "answer") {
-      var peer = this.peers.find(x=>x.signalingId == sdpMessage.signalingId);
+      var peer = this.peers.find(x => x.signalingId == sdpMessage.signalingId);
       if (!peer) {
         console.error(`Unable to find peer with ID ${sdpMessage.signalingId}.`);
         return;
@@ -188,40 +244,32 @@ export class SessionContextState {
     }
   }
 
-  private async sendOffer(x: Peer, iceServers: RTCIceServer[]) {
+  private sendOffer = async (x: Peer, iceServers: RTCIceServer[]) => {
     x.peerConnection = new RTCPeerConnection({
       iceServers: iceServers
     });
+    this.addLocalMediaTracks(x.peerConnection);
 
     this.configurePeerConnection(x.peerConnection, x.signalingId);
-
-    x.localSdp = await x.peerConnection.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
-      voiceActivityDetection: true
-    });
-
-    await x.peerConnection?.setLocalDescription(x.localSdp);
-
-    console.log("Creating offer for: ", x);
-    Signaler.sendSdp(x.signalingId, getSettings().displayName, x.peerConnection.localDescription);
+    
+    var offer = await x.peerConnection.createOffer();
+    
+    await x.peerConnection?.setLocalDescription(offer);
+    
+    console.log("Sending SDP offer to: ", x);
+    await Signaler.sendSdp(x.signalingId, getSettings().displayName, x.peerConnection.localDescription);
   }
 
-  private async sendOffers() {
+  private sendOffers = async () => {
     const iceServers = await Signaler.getIceServers();
     this.peers.forEach(async x => {
-      this.sendOffer(x, iceServers);
+      await this.sendOffer(x, iceServers);
     })
   }
 
   private updatePeers = async () => {
     var peerIds = await Signaler.getPeers();
 
-    // Remove any peers that are no longer connected to the server.
-    this.peers = this.peers.filter(x => 
-      peerIds.some(y => x.signalingId == y && x.peerConnection?.connectionState == "connected"));
-
-    // Add missing peers.
     peerIds.forEach(x => {
       if (!this.peers.some(y => y.signalingId == x)) {
         this.peers.push({ signalingId: x });

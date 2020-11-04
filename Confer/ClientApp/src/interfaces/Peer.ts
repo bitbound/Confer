@@ -3,5 +3,4 @@ export interface Peer {
     displayName?: string;
     remoteMediaStream?: MediaStream;
     peerConnection?: RTCPeerConnection;
-    localSdp?: RTCSessionDescriptionInit;
 }

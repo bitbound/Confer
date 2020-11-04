@@ -2,7 +2,6 @@ export async function enumerateAudioDevices(): Promise<MediaDeviceInfo[]> {
   await navigator.mediaDevices.getUserMedia({
     audio: true
   });
-
   var devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(x => x.kind == "audioinput");;
 }
@@ -11,7 +10,6 @@ export async function enumerateVideoDevices(): Promise<MediaDeviceInfo[]> {
   await navigator.mediaDevices.getUserMedia({
     video: true
   });
-
   var devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(x => x.kind == "videoinput");;
 }

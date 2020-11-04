@@ -50,10 +50,12 @@ export class Layout extends Component<LayoutProps, LayoutState> {
   }
 
   onWindowResized = () => {
-    this.setState({
-      isSidebarOpen: this.shouldSidebarBeFixed(),
-      isSidebarFixed: this.shouldSidebarBeFixed()
-    });
+    if (!this.context.isSession) {
+      this.setState({
+        isSidebarOpen: this.shouldSidebarBeFixed(),
+        isSidebarFixed: this.shouldSidebarBeFixed()
+      });
+    }
   }
 
 
@@ -100,7 +102,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
       "navbar-toggler menu-button";
 
     return (
-      <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px" }}>
+      <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px", height: "100%" }}>
         <header>
           <Navbar
             className="ng-white box-shadow mb-3 justify-content-start"
@@ -132,7 +134,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
           </Navbar>
         </header>
 
-        <div className="container" style={{ maxWidth: "unset", backgroundColor: pageBackgroundColor }}>
+        <div className="container" style={{ maxWidth: "100vw", backgroundColor: pageBackgroundColor }}>
           <If condition={!isSession}>
             {this.props.children}
           </If>

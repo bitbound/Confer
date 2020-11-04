@@ -83,6 +83,16 @@ namespace Confer.Services
             }
         }
 
+        public SessionDto GetSessionInfo(string sessionId)
+        {
+            if (!_sessionManager.TryGetSession(sessionId, out var session))
+            {
+                return null;
+            }
+
+            return session.ToDto();
+        }
+
         public SessionDto JoinSession(string sessionId)
         {
             if (!_sessionManager.TryGetSession(sessionId, out var session))
@@ -93,16 +103,7 @@ namespace Confer.Services
             SessionId = sessionId;
             session.Participants.AddOrUpdate(Context.ConnectionId, string.Empty, (k,v) => string.Empty);
 
-            return new SessionDto()
-            {
-                Id = session.Id,
-                LogoUrl = session.LogoUrl,
-                PageBackgroundColor = session.PageBackgroundColor,
-                PageTextColor = session.PageTextColor,
-                TitleBackgroundColor = session.TitleBackgroundColor,
-                TitleText = session.TitleText,
-                TitleTextColor = session.TitleTextColor
-            };
+            return session.ToDto();
         }
 
         public Task SendIceCandidate(string signalingId, string jsonCandidate)

@@ -27,5 +27,19 @@ namespace Confer.Models
         public ConcurrentDictionary<string, object> Participants { get; } = new ConcurrentDictionary<string, object>();
         public string TitleText { get; }
         public string TitleTextColor { get; }
+
+        public SessionDto ToDto()
+        {
+            return new SessionDto()
+            {
+                Id = Id,
+                LogoUrl = LogoUrl,
+                PageBackgroundColor = PageBackgroundColor,
+                PageTextColor = PageTextColor,
+                TitleBackgroundColor = TitleBackgroundColor,
+                TitleText = TitleText,
+                TitleTextColor = TitleTextColor
+            };
+        }
     }
 }
