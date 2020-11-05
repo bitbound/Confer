@@ -18,8 +18,6 @@ import {
 } from '../utils/MediaHelper';
 import { If } from './If';
 
-const settings = getSettings();
-
 interface SettingsProps {
 
 }
@@ -31,8 +29,8 @@ interface SettingsState {
   selectedVideoInput?: string;
   selectedAudioInput?: string;
   selectedAudioOutput?: string;
-  videoTracks?: MediaStreamTrack[];
-  audioTrack?: MediaStreamTrack[];
+  videoStream?: MediaStream;
+  audioStream?: MediaStream;
   displayName?: string;
   audioContext?: AudioContext;
   audioProcessor?: ScriptProcessorNode;
@@ -64,6 +62,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
 
   async initAudioInputs() {
     try {
+      const settings = getSettings();
+
       let mics = await enumerateAudioInputs();
       this.setState({
         audioInputs: mics
@@ -85,6 +85,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
 
   async initAudioOutputs() {
     try {
+      const settings = getSettings();
+
       let speakers = await enumerateAudioOuputs();
       this.setState({
         audioOutputs: speakers
@@ -95,7 +97,9 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
         speakers.some(speaker => speaker.deviceId == x.deviceId)) || speakers[0];
 
       if (selectedOutput) {
-        this.loadSelectedAudioDevice(selectedOutput.deviceId);
+        this.setState({
+          selectedAudioOutput: selectedOutput.deviceId
+        })
       }
     }
     catch (ex) {
@@ -106,6 +110,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
 
   async initVideoInputs() {
     try {
+      const settings = getSettings();
+
       let cameras = await enumerateVideoInputs();
       this.setState({
         videoInputs: cameras
@@ -147,7 +153,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
 
       this.setState({
         selectedAudioInput: deviceId,
-        audioTrack: audioStream.getAudioTracks(),
+        audioStream: audioStream,
         audioContext: audioContext,
         audioProcessor: scriptProcessor,
         audioStreamSource: streamSource
@@ -163,7 +169,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     loadVideoDevice(deviceId).then(videoStream => {
       this.setState({
         selectedVideoInput: deviceId,
-        videoTracks: videoStream.getVideoTracks()
+        videoStream: videoStream
       })
     }).catch(reason => {
       console.error(reason);
@@ -196,7 +202,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             <Label>Camera</Label>
             <select
               className={"form-control"}
-              defaultValue={this.state.selectedVideoInput}
+              value={this.state.selectedVideoInput}
               onChange={ev => {
                 this.loadSelectedVideoDevice(ev.target.value);
                 const settings = getSettings();
@@ -219,14 +225,14 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             </select>
           </FormGroup>
 
-          <If condition={!!this.state.videoTracks}>
+          <If condition={!!this.state.videoStream}>
             <div>
               <video
                 style={{ width: "100%" }}
                 ref={ref => {
                   if (ref) {
-                    if (this.state.videoTracks) {
-                      ref.srcObject = new MediaStream(this.state.videoTracks);
+                    if (ref && this.state.videoStream && ref.srcObject != this.state.videoStream) {
+                      ref.srcObject = this.state.videoStream;
                     }
                   }
                 }}
@@ -240,7 +246,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             <Label>Microphone</Label>
             <select
               className={"form-control"}
-              defaultValue={this.state.selectedAudioInput}
+              value={this.state.selectedAudioInput}
               onChange={ev => {
                 this.loadSelectedAudioDevice(ev.target.value);
                 const settings = getSettings();
@@ -277,9 +283,12 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             <Label>Speaker</Label>
             <select
               className={"form-control"}
-              defaultValue={this.state.selectedAudioOutput}
+              value={this.state.selectedAudioOutput}
               onChange={ev => {
                 const settings = getSettings();
+                this.setState({
+                  selectedAudioOutput: ev.target.value
+                });
                 console.log("Saving default speaker ID ", ev.target.value);
                 saveSettings({
                   defaultAudioOutput: ev.target.value,
