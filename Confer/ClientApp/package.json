@@ -39,7 +39,7 @@
     "extends": "react-app",
     "rules": {
       "eqeqeq": "off"
-  }
+    }
   },
   "scripts": {
     "start": "rimraf ./build && react-scripts start",
