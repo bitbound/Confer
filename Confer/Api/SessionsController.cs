@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Confer.Models;
 using Confer.Services;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ namespace Confer.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [EnableCors("OpenPolicy")]
     public class SessionsController : ControllerBase
     {
         private ISessionManager _sessionManager;

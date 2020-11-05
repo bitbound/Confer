@@ -60,6 +60,7 @@ namespace Confer.Services
                 {
                     session.Participants.Remove(Context.ConnectionId, out _);
                 }
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, SessionId);
             }
             await base.OnDisconnectedAsync(exception);
         }
@@ -93,7 +94,7 @@ namespace Confer.Services
             return session.ToDto();
         }
 
-        public SessionDto JoinSession(string sessionId)
+        public async Task<SessionDto> JoinSession(string sessionId)
         {
             if (!_sessionManager.TryGetSession(sessionId, out var session))
             {
@@ -102,13 +103,18 @@ namespace Confer.Services
 
             SessionId = sessionId;
             session.Participants.AddOrUpdate(Context.ConnectionId, string.Empty, (k,v) => string.Empty);
-
+            await Groups.AddToGroupAsync(Context.ConnectionId, SessionId);
             return session.ToDto();
         }
 
         public Task SendIceCandidate(string signalingId, string jsonCandidate)
         {
             return Clients.Client(signalingId).SendAsync("IceCandidate", Context.ConnectionId, jsonCandidate);
+        }
+
+        public Task SendChatMessage(string message, string displayName)
+        {
+            return Clients.Group(SessionId).SendAsync("ChatMessage", message, displayName, Context.ConnectionId);
         }
 
         public Task SendSdp(string signalingId, string displayName, RTCSessionDescriptionInit sessionDescription)

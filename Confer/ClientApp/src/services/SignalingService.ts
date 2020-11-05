@@ -1,4 +1,5 @@
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
+import { ChatMessage } from "../interfaces/ChatMessage";
 import { IceCandidateMessage } from "../interfaces/IceCandidateMessage";
 import { SdpMessage } from "../interfaces/SdpMessage";
 import { SessionDto } from "../interfaces/SessionDto";
@@ -8,6 +9,7 @@ class SignalingService {
   private connection?: HubConnection;
   private initialized: boolean = false;
 
+  public readonly onChatMessageReceived = new EventEmitterEx<ChatMessage>();
   public readonly onConnectionStateChanged = new EventEmitterEx<HubConnectionState>();
   public readonly onSdpReceived = new EventEmitterEx<SdpMessage>();
   public readonly onIceCandidateReceived = new EventEmitterEx<IceCandidateMessage>();
@@ -44,7 +46,15 @@ class SignalingService {
           iceCandidate: JSON.parse(jsonCandidate),
           peerId: peerId
         })
-      })
+      });
+      this.connection.on("ChatMessage", (message: string, displayName: string, peerId: string) => {
+        this.onChatMessageReceived.publish({
+          message: message,
+          senderDisplayName: displayName,
+          senderSignalingId: peerId,
+          timestamp: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
+        })
+      });
 
       this.connection.onclose(() => this.onConnectionStateChanged.publish(HubConnectionState.Disconnected));
       this.connection.onreconnecting(() => this.onConnectionStateChanged.publish(HubConnectionState.Reconnecting));
@@ -82,6 +92,10 @@ class SignalingService {
   public sendIceCandidate(peerId: string, candidate: RTCIceCandidate | null) {
     var jsonCandidate = candidate ? JSON.stringify(candidate) : candidate;
     return this.connection?.invoke("SendIceCandidate", peerId, jsonCandidate);
+  }
+
+  public sendChatMessage(message: string, displayName: string) {
+    this.connection?.invoke("SendChatMessage", message, displayName);
   }
 
   public sendSdp(signalingId: string, displayName: string, localDescription: RTCSessionDescription | null) {

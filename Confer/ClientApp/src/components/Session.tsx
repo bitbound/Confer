@@ -4,6 +4,11 @@ import { LoadingAnimation } from "./LoadingAnimation";
 import { SessionContext } from "../services/SessionContext";
 import { If } from "./If";
 import { getSettings } from "../services/SettingsService";
+import { Signaler } from "../services/SignalingService";
+import { ChatMessage } from "../interfaces/ChatMessage";
+import "./Session.css";
+import { SettingsComp } from "./Settings";
+import { Col, Row } from "reactstrap";
 
 interface SessionProps {
 
@@ -12,6 +17,7 @@ interface SessionProps {
 interface SessionState {
   mainViewingStream?: MediaStream;
   selectedName?: string;
+  messages: ChatMessage[];
 }
 
 export class Session extends Component<SessionProps, SessionState> {
@@ -22,8 +28,22 @@ export class Session extends Component<SessionProps, SessionState> {
     super(props);
     this.state = {
       mainViewingStream: undefined,
-      selectedName: ""
+      selectedName: "",
+      messages: []
     }
+  }
+
+  componentDidMount() {
+    Signaler.onChatMessageReceived.subscribe(message => {
+      console.log("Chat message received.");
+      this.setState({
+        messages: [...this.state.messages, message]
+      })
+    })
+  }
+
+  componentWillUnmount() {
+    Signaler.onChatMessageReceived.removeAllListeners();
   }
 
   render() {
@@ -35,6 +55,7 @@ export class Session extends Component<SessionProps, SessionState> {
       localMediaStream,
       peers
     } = this.context;
+
 
     switch (connectionState) {
       case HubConnectionState.Connecting:
@@ -70,11 +91,22 @@ export class Session extends Component<SessionProps, SessionState> {
 
     if (!joinedSession) {
       return (
-        <div className="text-center mt-5">
-          <button className="btn btn-lg btn-primary"
-            onClick={this.context.joinSession}>
-            Join
-            </button>
+        <div className="mt-4">
+          <Row className="mb-5 text-center">
+            <Col sm={12} md={10} lg={8} xl={6}>
+              <h5 className="mb-3">
+                Adjust your settings below, then join!
+              </h5>
+              <div>
+                <button className="btn btn-lg btn-primary"
+                  onClick={this.context.joinSession}>
+                  Join Chat
+              </button>
+              </div>
+            </Col>
+          </Row>
+
+          <SettingsComp />
         </div>
       )
     }
@@ -92,12 +124,13 @@ export class Session extends Component<SessionProps, SessionState> {
     let settings = getSettings();
 
     return (
-      <div style={{ color: sessionInfo?.pageTextColor, ...SessionGrid }}>
-        <div style={ThumbnailBanner}>
-          <div style={ThumbnailVideoWrapper}>
+      <div style={{ color: sessionInfo?.pageTextColor }} className="session-grid">
+        <div className="thumbnail-banner">
+          <div className="thumbnail-video-wrapper">
             <video
               key={"thumbnail-self"}
-              style={ThumbnailVideo}
+              className="thumbnail-video"
+              muted={true}
               autoPlay={true}
               onLoadedMetadata={ev => {
                 ev.currentTarget.play();
@@ -109,12 +142,12 @@ export class Session extends Component<SessionProps, SessionState> {
                 })
               }}
               ref={ref => {
-                if (ref && localMediaStream) {
+                if (ref && localMediaStream && ref.srcObject != localMediaStream) {
                   console.log("Set local media stream.");
                   ref.srcObject = localMediaStream
                 }
               }} />
-            <div style={Nameplate}>
+            <div className="nameplate">
               <span style={{}}>
                 {settings.displayName}
               </span>
@@ -122,11 +155,12 @@ export class Session extends Component<SessionProps, SessionState> {
           </div>
 
 
-          {peers.map(x => (
-            <div style={ThumbnailVideoWrapper}>
+          {peers.map((x, index) => (
+            <div
+              key={`thumbnail-${x.signalingId}-${index}`}
+              className="thumbnail-video-wrapper">
               <video
-                key={`thumbnail-${x.signalingId}`}
-                style={ThumbnailVideo}
+                className="thumbnail-video"
                 autoPlay={true}
                 onLoadedMetadata={ev => {
                   ev.currentTarget.play();
@@ -137,13 +171,21 @@ export class Session extends Component<SessionProps, SessionState> {
                     selectedName: x.displayName
                   })
                 }}
-                ref={ref => {
-                  if (ref && x.remoteMediaStream) {
+                ref={async ref => {
+                  if (ref && x.remoteMediaStream && ref.srcObject != x.remoteMediaStream) {
                     console.log("Set remote media stream for peer ", x.signalingId);
-                    ref.srcObject = x.remoteMediaStream
+                    ref.srcObject = x.remoteMediaStream;
+                    var mediaElement = ref as unknown as any;
+                    if (mediaElement.setSinkId) {
+                      await mediaElement.setSinkId(settings.defaultAudioOutput);
+                      console.log("SetSinkId successful.  ID: ", settings.defaultAudioOutput);
+                    }
+                    else {
+                      console.warn("SetSinkId is not supported.  Cannot set audio output.");
+                    }
                   }
                 }} />
-              <div style={Nameplate}>
+              <div className="nameplate">
                 {x.displayName}
               </div>
             </div>
@@ -153,24 +195,20 @@ export class Session extends Component<SessionProps, SessionState> {
         <div style={{ position: "relative" }}>
           <If condition={!!mainViewingStream}>
             <video
+              muted={true}
               autoPlay={true}
               onLoadedMetadata={ev => {
                 ev.currentTarget.play();
               }}
               ref={ref => {
-                if (ref && mainViewingStream) {
+                if (ref && mainViewingStream && ref.srcObject != mainViewingStream) {
                   ref.srcObject = mainViewingStream;
                 }
               }}
               placeholder="Something"
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover"
-              }}
+              className="main-viewing-video"
             />
-            <div style={Nameplate}>
+            <div className="nameplate">
               {selectedName}
             </div>
           </If>
@@ -182,66 +220,42 @@ export class Session extends Component<SessionProps, SessionState> {
           </If>
         </div>
 
-        <div style={{ display: "grid", gridTemplateRows: "1fr auto", rowGap: "5px" }}>
-          <div style={ChatMessagesWindow} />
-          <input placeholder="Type a chat message" className="form-control"></input>
+        <div className="chat-messages-wrapper">
+          <div style={{ position: "relative" }}>
+            <div
+              ref={ref => {
+                if (ref) {
+                  ref.scrollTo(0, ref.scrollHeight);
+                }
+              }}
+              className="chat-messages-window">
+              {this.state.messages.map((x, index) => (
+                <div key={`chat-message-${index}`}>
+                  <span style={{ fontWeight: "bold" }}>
+                    {x.senderDisplayName}
+                  </span>
+                  <small>
+                    {` (${x.timestamp}): `}
+                  </small>
+                  {x.message}
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+          <input
+            placeholder="Type a chat message"
+            className="form-control"
+            onKeyPress={ev => {
+              if (ev.key.toLowerCase() == "enter") {
+                var messageText = ev.currentTarget.value;
+                Signaler.sendChatMessage(messageText, settings.displayName);
+                ev.currentTarget.value = "";
+              }
+            }} />
         </div>
       </div>
     )
   }
 }
-
-
-const SessionGrid = {
-  display: "grid",
-  gridTemplateRows: "auto 1fr",
-  gridTemplateColumns: "3fr 2fr",
-  height: "100%",
-  paddingBottom: "30px",
-  rowGap: "10px",
-  columnGap: "10px"
-} as CSSProperties;
-
-const ThumbnailBanner = {
-  display: "flex",
-  flexDirection: "row",
-  overflowX: "auto",
-  gridColumn: "1 / span 2"
-} as CSSProperties;
-
-const ThumbnailVideoWrapper = {
-  position: "relative",
-  height: "100px",
-  width: "130px",
-  marginRight: "10px",
-} as CSSProperties;
-
-const ThumbnailVideo = {
-  position: "absolute",
-  height: "100px",
-  width: "130px",
-  objectFit: "cover",
-  cursor: "pointer"
-} as CSSProperties;
-
-const ChatMessagesWindow = {
-  height: "100%",
-  width: "100%",
-  overflowY: "auto",
-  overflowX: "hidden",
-  backgroundColor: "whitesmoke",
-  borderRadius: "5px"
-} as CSSProperties;
-
-const Nameplate = {
-  position: "absolute",
-  bottom: "2px",
-  right: "2px",
-  textAlign: "center",
-  color: "white",
-  backgroundColor: "rgba(0,0,0, 0.7)",
-  padding: "1px 4px",
-  userSelect: "none",
-  pointerEvents: "none",
-  borderRadius: "3px"
-} as CSSProperties;

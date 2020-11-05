@@ -42,6 +42,15 @@ namespace Confer
             services.AddAuthentication()
                 .AddIdentityServerJwt();
 
+            services.AddCors(options =>
+            {
+                options.AddPolicy("OpenPolicy", builder => builder
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                );
+            });
+
             services.AddControllersWithViews();
             services.AddRazorPages();
 
@@ -84,6 +93,7 @@ namespace Confer
             app.UseAuthentication();
             app.UseIdentityServer();
             app.UseAuthorization();
+            app.UseCors("OpenPolicy");
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapHub<SignalingHub>("/signaling");

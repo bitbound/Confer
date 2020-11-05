@@ -1,0 +1,83 @@
+.session-grid {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 3fr 2fr;
+  height: 100%;
+  padding-bottom: 30px;
+  grid-row-gap: 10px;
+  grid-column-gap: 10px;
+}
+
+.thumbnail-banner {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  grid-column: 1 / span 2;
+}
+
+.thumbnail-video-wrapper {
+  position: relative;
+  height: 100px;
+  width: 130px;
+  margin-right: 10px;
+}
+
+.thumbnail-video {
+  position: absolute;
+  height: 100px;
+  width: 130px;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.chat-messages-wrapper {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-row-gap: 5px;
+  color: black;
+}
+
+.chat-messages-window {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  padding: 5px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: whitesmoke;
+  border-radius: 5px;
+  word-break: break-word;
+}
+
+.nameplate {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  text-align: center;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+  user-select: none;
+  pointer-events: none;
+  border-radius: 3px;
+}
+
+.main-viewing-video {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width : 500px) {
+    .session-grid {
+        grid-template-rows: auto 300px 300px;
+        grid-template-columns: 1fr;
+        height: unset;
+    }
+
+    .thumbnail-banner {
+      grid-column: unset;
+    }
+}

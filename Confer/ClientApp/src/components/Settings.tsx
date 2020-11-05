@@ -9,7 +9,13 @@ import {
   Row
 } from 'reactstrap';
 import { getSettings, saveSettings } from '../services/SettingsService';
-import { enumerateAudioDevices, enumerateVideoDevices, loadAudioDevice, loadVideoDevice } from '../utils/MediaHelper';
+import { 
+  enumerateAudioInputs, 
+  enumerateVideoInputs, 
+  loadAudioDevice, 
+  loadVideoDevice,
+   enumerateAudioOuputs 
+} from '../utils/MediaHelper';
 import { If } from './If';
 
 const settings = getSettings();
@@ -21,8 +27,10 @@ interface SettingsProps {
 interface SettingsState {
   videoInputs: MediaDeviceInfo[];
   audioInputs: MediaDeviceInfo[];
+  audioOutputs: MediaDeviceInfo[];
   selectedVideoInput?: string;
   selectedAudioInput?: string;
+  selectedAudioOutput?: string;
   videoTracks?: MediaStreamTrack[];
   audioTrack?: MediaStreamTrack[];
   displayName?: string;
@@ -41,21 +49,22 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     const settings = getSettings();
     this.state = {
       audioInputs: [],
+      audioOutputs: [],
       videoInputs: [],
       displayName: settings.displayName
     }
     this.audioLevelProgress = React.createRef();
   }
 
-  componentDidMount() {
-    this.initAudioDevices();
-
-    this.initVideoDevices();
+  async componentDidMount() {
+    await this.initVideoInputs();
+    await this.initAudioInputs();
+    await this.initAudioOutputs();
   }
 
-  async initAudioDevices() {
+  async initAudioInputs() {
     try {
-      let mics = await enumerateAudioDevices();
+      let mics = await enumerateAudioInputs();
       this.setState({
         audioInputs: mics
       });
@@ -74,9 +83,30 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     }
   }
 
-  async initVideoDevices() {
+  async initAudioOutputs() {
     try {
-      let cameras = await enumerateVideoDevices();
+      let speakers = await enumerateAudioOuputs();
+      this.setState({
+        audioOutputs: speakers
+      });
+
+      let selectedOutput = speakers.find(x =>
+        x.deviceId == settings.defaultAudioOutput &&
+        speakers.some(speaker => speaker.deviceId == x.deviceId)) || speakers[0];
+
+      if (selectedOutput) {
+        this.loadSelectedAudioDevice(selectedOutput.deviceId);
+      }
+    }
+    catch (ex) {
+      console.error(ex);
+      alert("Failed to initialize audio devices.");
+    }
+  }
+
+  async initVideoInputs() {
+    try {
+      let cameras = await enumerateVideoInputs();
       this.setState({
         videoInputs: cameras
       });
@@ -156,6 +186,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 saveSettings({
                   defaultAudioInput: settings.defaultAudioInput,
                   defaultVideoInput: settings.defaultVideoInput,
+                  defaultAudioOutput: settings.defaultAudioOutput,
                   displayName: ev.target.value
                 })
               }} />
@@ -173,7 +204,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 saveSettings({
                   defaultVideoInput: ev.target.value,
                   defaultAudioInput: settings.defaultAudioInput,
-                  displayName: settings.displayName
+                  displayName: settings.displayName,
+                  defaultAudioOutput: settings.defaultAudioOutput,
                 })
               }}>
               {this.state.videoInputs.map(x => (
@@ -205,7 +237,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
           </If>
 
           <FormGroup>
-            <Label>Microphones</Label>
+            <Label>Microphone</Label>
             <select
               className={"form-control"}
               defaultValue={this.state.selectedAudioInput}
@@ -215,8 +247,9 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 console.log("Saving default mic ID ", ev.target.value);
                 saveSettings({
                   defaultAudioInput: ev.target.value,
-                  defaultVideoInput: settings.defaultAudioInput,
-                  displayName: settings.displayName
+                  defaultVideoInput: settings.defaultVideoInput,
+                  displayName: settings.displayName,
+                  defaultAudioOutput: settings.defaultAudioOutput,
                 })
               }}>
               {this.state.audioInputs.map(x => (
@@ -238,6 +271,32 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 width: "100%"
               }}
             />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Speaker</Label>
+            <select
+              className={"form-control"}
+              defaultValue={this.state.selectedAudioOutput}
+              onChange={ev => {
+                const settings = getSettings();
+                console.log("Saving default speaker ID ", ev.target.value);
+                saveSettings({
+                  defaultAudioOutput: ev.target.value,
+                  defaultVideoInput: settings.defaultVideoInput,
+                  displayName: settings.displayName,
+                  defaultAudioInput: settings.defaultAudioInput,
+                })
+              }}>
+              {this.state.audioOutputs.map(x => (
+                <option
+                  key={x.deviceId}
+                  value={x.deviceId}>
+
+                  {x.label}
+                </option>
+              ))}
+            </select>
           </FormGroup>
         </Col>
       </Row>

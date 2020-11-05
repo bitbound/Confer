@@ -8,7 +8,7 @@ import { SdpMessage } from '../interfaces/SdpMessage';
 import { getSettings } from './SettingsService';
 import { IceCandidateMessage } from '../interfaces/IceCandidateMessage';
 
-
+// Please enjoy my god object. :)
 export class SessionContextState {
   public isSession: boolean = false;
   public localAudioDeviceId?: string;
@@ -94,12 +94,12 @@ export class SessionContextState {
       this.update();
     })
     pc.addEventListener("negotiationneeded", async (ev) => {
-      // TODO: This can be re-enabled when offer collisions are handled.
-      //console.log("Negotation needed.");
-      //var offer = await pc.createOffer();
-      //await pc.setLocalDescription(offer);
-      //console.log("Sending renegotiation offer: ", pc.localDescription);
-      //await Signaler.sendSdp(peerId, getSettings().displayName, pc.localDescription);
+      // TODO: Handle offer collisions politely.
+      console.log("Negotation needed.");
+      var offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      console.log("Sending renegotiation offer: ", pc.localDescription);
+      await Signaler.sendSdp(peerId, getSettings().displayName, pc.localDescription);
     });
     pc.addEventListener("track", ev => {
       console.log("Track received: ", ev.track);
@@ -201,10 +201,11 @@ export class SessionContextState {
 
   private handleSdpReceived = async (sdpMessage: SdpMessage) => {
     console.log("Received SDP: ", sdpMessage);
+    var peer = this.peers.find(x=>x.signalingId == sdpMessage.signalingId);
+
     if (sdpMessage.description.type == "offer") {
       var iceServers = await Signaler.getIceServers();
 
-      var peer = this.peers.find(x=>x.signalingId == sdpMessage.signalingId);
       var pc = peer?.peerConnection || new RTCPeerConnection({
         iceServers: iceServers
       });
@@ -232,7 +233,6 @@ export class SessionContextState {
       this.update();
     }
     else if (sdpMessage.description.type == "answer") {
-      var peer = this.peers.find(x => x.signalingId == sdpMessage.signalingId);
       if (!peer) {
         console.error(`Unable to find peer with ID ${sdpMessage.signalingId}.`);
         return;

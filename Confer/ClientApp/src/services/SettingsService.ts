@@ -6,6 +6,7 @@ const defaultSettings = () => {
     var defaults = {
         defaultAudioInput: "",
         defaultVideoInput: "",
+        defaultAudioOutput: "",
         displayName: getRandomUser()
     };
     localStorage.setItem(settingsKey, JSON.stringify(defaults));
