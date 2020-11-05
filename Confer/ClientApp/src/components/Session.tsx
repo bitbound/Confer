@@ -213,6 +213,14 @@ export class Session extends Component<SessionProps, SessionState> {
             </div>
           </If>
 
+          <button 
+            className={`share-screen-button btn btn-sm ${this.context.isScreenSharing ? "btn-danger" : "btn-info"}`}
+            onClick={() => {
+              this.context.toggleShareScreen()
+            }}>
+              {this.context.isScreenSharing ? "Stop Sharing" : "Share Screen"}
+          </button>
+
           <If condition={!mainViewingStream}>
             <h4 className="text-center" style={{ marginTop: "100px" }}>
               Select a video feed.

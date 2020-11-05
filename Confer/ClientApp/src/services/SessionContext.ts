@@ -11,6 +11,7 @@ import { IceCandidateMessage } from '../interfaces/IceCandidateMessage';
 // Please enjoy my god object. :)
 export class SessionContextState {
   public isSession: boolean = false;
+  public isScreenSharing: boolean = false;
   public localAudioDeviceId?: string;
   public localVideoDeviceId?: string;
   public localMediaStream: MediaStream = new MediaStream();
@@ -55,6 +56,37 @@ export class SessionContextState {
       await this.sendOffers();
       this.update();
     }
+  }
+
+  public toggleShareScreen = async () => {
+    this.localMediaStream.getVideoTracks().forEach(x => {
+      this.localMediaStream.removeTrack(x);
+    });
+
+    if (!this.isScreenSharing) {
+      var displayMedia = await (navigator.mediaDevices as unknown as any).getDisplayMedia({
+        video:true
+      });
+      displayMedia.getVideoTracks().forEach((x:any) => {
+        this.localMediaStream.addTrack(x);
+      })
+    }
+    else {
+      await this.loadVideoStream();
+    }
+
+    var newVideoTrack = this.localMediaStream.getVideoTracks()[0];
+
+    this.peers.forEach(peer => {
+      peer.peerConnection?.getSenders().forEach(sender =>{
+        if (sender.track?.kind == "video") {
+          sender.replaceTrack(newVideoTrack);
+        }
+      })
+    })
+
+    this.isScreenSharing = !this.isScreenSharing;
+    this.update();
   }
 
   public update = () => {
@@ -118,37 +150,6 @@ export class SessionContextState {
     });
   }
 
-  private getLocalMedia = async () => {
-    this.localMediaStream = new MediaStream();
-    try {
-      let audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: this.localAudioDeviceId
-        }
-      });
-      audioStream.getTracks().forEach(x => {
-        this.localMediaStream.addTrack(x);
-      })
-    }
-    catch {
-      console.warn("Failed to get audio device.");
-    }
-
-    try {
-      let videoStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          deviceId: this.localVideoDeviceId
-        }
-      });
-      videoStream.getTracks().forEach(x => {
-        this.localMediaStream.addTrack(x);
-      })
-    }
-    catch {
-      console.warn("Failed to get video device.");
-    }
-  }
-
   private getSessionInfo = async (join: boolean) => {
     var sessionInfo = join ? 
       await Signaler.joinSession(String(this.sessionId)):
@@ -172,7 +173,7 @@ export class SessionContextState {
     if (connectionState == HubConnectionState.Connected) {
       this.peers.splice(0);
 
-      await this.getLocalMedia();
+      await this.initLocalMedia();
 
       this.update();
       if (!this.localMediaStream?.getTracks()) {
@@ -245,6 +246,45 @@ export class SessionContextState {
       console.error("Unhandled SDP type.", sdpMessage);
     }
   }
+
+  private initLocalMedia = async () => {
+    this.localMediaStream = new MediaStream();
+    await this.loadAudioStream();
+    await this.loadVideoStream();
+  }
+
+  private loadAudioStream = async () => {
+    try {
+      let audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId: this.localAudioDeviceId
+        }
+      });
+      audioStream.getTracks().forEach(x => {
+        this.localMediaStream.addTrack(x);
+      })
+    }
+    catch {
+      console.warn("Failed to get audio device.");
+    }
+  }
+
+  private loadVideoStream = async () => {
+    try {
+      let videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: this.localVideoDeviceId
+        }
+      });
+      videoStream.getTracks().forEach(x => {
+        this.localMediaStream.addTrack(x);
+      })
+    }
+    catch {
+      console.warn("Failed to get video device.");
+    }
+  }
+
 
   private sendOffer = async (x: Peer, iceServers: RTCIceServer[]) => {
     x.peerConnection = new RTCPeerConnection({
