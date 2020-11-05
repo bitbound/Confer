@@ -122,7 +122,7 @@ export class Home extends Component<HomeProps, HomeState> {
               />
             </FormGroup>
             <FormGroup className="text-right">
-              <button className="btn btn-primary"
+              <button className="btn btn-lg btn-primary"
                 type="button"
                 onClick={async () => {
                   try {

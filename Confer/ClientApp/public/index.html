@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#000000">
     <base href="%PUBLIC_URL%/" />
+    <link rel="stylesheet" href="site.css" />
     <!--
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
@@ -28,6 +29,37 @@
     </noscript>
     <div id="root">
         <div class="signal"></div>
+        <style>
+          .signal {
+              border: 5px solid #333;
+              border-radius: 30px;
+              height: 30px;
+              left: 50%;
+              margin: -15px 0 0 -15px;
+              opacity: 0;
+              position: absolute;
+              top: 45vh;
+              width: 30px;
+              animation: pulsate 1s ease-out;
+              animation-iteration-count: infinite;
+          }
+
+          @keyframes pulsate {
+              0% {
+                  transform: scale(.1);
+                  opacity: 0.0;
+              }
+
+              50% {
+                  opacity: 1;
+              }
+
+              100% {
+                  transform: scale(1.2);
+                  opacity: 0;
+              }
+          }
+        </style>
     </div>
     <!--
       This HTML file is a template.

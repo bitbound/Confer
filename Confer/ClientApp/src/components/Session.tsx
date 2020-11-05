@@ -56,8 +56,8 @@ export class Session extends Component<SessionProps, SessionState> {
       peers
     } = this.context;
 
-
     switch (connectionState) {
+      
       case HubConnectionState.Connecting:
         return (
           <LoadingAnimation message="Connecting"></LoadingAnimation>
