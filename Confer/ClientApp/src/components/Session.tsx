@@ -51,9 +51,10 @@ export class Session extends Component<SessionProps, SessionState> {
       sessionChecked,
       sessionInfo,
       connectionState,
-      sessionJoined: joinedSession,
+      sessionJoined,
       localMediaStream,
-      peers
+      peers,
+      isScreenSharing
     } = this.context;
 
     switch (connectionState) {
@@ -89,7 +90,7 @@ export class Session extends Component<SessionProps, SessionState> {
       )
     }
 
-    if (!joinedSession) {
+    if (!sessionJoined) {
       return (
         <div className="mt-4 ml-4">
           <Row className="mb-5 text-center">
@@ -130,6 +131,7 @@ export class Session extends Component<SessionProps, SessionState> {
             <video
               key={"thumbnail-self"}
               className="thumbnail-video"
+              style={{transform: !isScreenSharing ? "scaleX(-1)" : "unset"}}
               muted={true}
               autoPlay={true}
               onLoadedMetadata={ev => {
@@ -205,7 +207,11 @@ export class Session extends Component<SessionProps, SessionState> {
                   ref.srcObject = mainViewingStream;
                 }
               }}
-              placeholder="Something"
+              style={{
+                transform: !isScreenSharing && mainViewingStream == localMediaStream ? 
+                  "scaleX(-1)" : 
+                  "unset"
+              }}
               className="main-viewing-video"
             />
             <div className="nameplate">
@@ -214,11 +220,11 @@ export class Session extends Component<SessionProps, SessionState> {
           </If>
 
           <button 
-            className={`share-screen-button btn btn-sm ${this.context.isScreenSharing ? "btn-danger" : "btn-info"}`}
+            className={`share-screen-button btn btn-sm ${isScreenSharing ? "btn-danger" : "btn-info"}`}
             onClick={() => {
               this.context.toggleShareScreen()
             }}>
-              {this.context.isScreenSharing ? "Stop Sharing" : "Share Screen"}
+              {isScreenSharing ? "Stop Sharing" : "Share Screen"}
           </button>
 
           <If condition={!mainViewingStream}>

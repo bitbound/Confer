@@ -228,7 +228,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
           <If condition={!!this.state.videoStream}>
             <div>
               <video
-                style={{ width: "100%" }}
+                style={{ width: "100%", transform:"scaleX(-1)" }}
                 ref={ref => {
                   if (ref) {
                     if (ref && this.state.videoStream && ref.srcObject != this.state.videoStream) {

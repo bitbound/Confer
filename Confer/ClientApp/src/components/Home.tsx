@@ -165,7 +165,7 @@ export class Home extends Component<HomeProps, HomeState> {
               </code>
             </div>
         </div>
-        <h6 className="mt-4 muted">
+        <h6 className="my-4 muted">
           The response object will contain an <code>id</code> property.  Go to <code>{`/session/{id}`}</code> in your browser to start.
         </h6>
       </div>

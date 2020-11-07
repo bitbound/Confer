@@ -12,13 +12,13 @@
     background-color: rgb(50,50,50);
     opacity: 0;
     z-index: 3;
-    transition: .5s ease all;
+    transition: .25s ease all;
 }
 
   .sidebar-frame.open {
       width: 200px;
       opacity: 1;
-      transition: .5s ease all;
+      transition: .25s ease all;
   }
 
   .sidebar-frame.fixed {

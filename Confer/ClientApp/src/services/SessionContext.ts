@@ -61,6 +61,7 @@ export class SessionContextState {
   public toggleShareScreen = async () => {
     this.localMediaStream.getVideoTracks().forEach(x => {
       this.localMediaStream.removeTrack(x);
+      x.stop();
     });
 
     if (!this.isScreenSharing) {

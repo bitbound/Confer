@@ -1,23 +1,39 @@
 export async function enumerateAudioInputs(): Promise<MediaDeviceInfo[]> {
-  await navigator.mediaDevices.getUserMedia({
-    audio: true
-  });
+  try{
+    await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+  }
+  catch {
+    console.warn("Failed to get user audio while enumerating.");
+  }
+  
   var devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(x => x.kind == "audioinput");;
 }
 
 export async function enumerateAudioOuputs(): Promise<MediaDeviceInfo[]> {
-  await navigator.mediaDevices.getUserMedia({
-    audio: true
-  });
+  try {
+    await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+  }
+  catch {
+    console.warn("Failed to get user audio while enumerating.");
+  }
   var devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(x => x.kind == "audiooutput");;
 }
 
 export async function enumerateVideoInputs(): Promise<MediaDeviceInfo[]> {
-  await navigator.mediaDevices.getUserMedia({
-    video: true
-  });
+  try {
+    await navigator.mediaDevices.getUserMedia({
+      video: true
+    });
+  }
+  catch {
+    console.warn("Failed to get user video while enumerating.");
+  }
   var devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(x => x.kind == "videoinput");;
 }
