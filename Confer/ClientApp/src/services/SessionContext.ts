@@ -59,35 +59,47 @@ export class SessionContextState {
   }
 
   public toggleShareScreen = async () => {
-    this.localMediaStream.getVideoTracks().forEach(x => {
-      this.localMediaStream.removeTrack(x);
-      x.stop();
-    });
-
-    if (!this.isScreenSharing) {
-      var displayMedia = await (navigator.mediaDevices as unknown as any).getDisplayMedia({
-        video:true
+    try {
+      if (!(navigator.mediaDevices as any).getDisplayMedia) {
+        alert("Screen sharing is not supported on this browser/device.");
+        return;
+      }
+      
+      this.localMediaStream.getVideoTracks().forEach(x => {
+        this.localMediaStream.removeTrack(x);
+        x.stop();
       });
-      displayMedia.getVideoTracks().forEach((x:any) => {
-        this.localMediaStream.addTrack(x);
+  
+      if (!this.isScreenSharing) {
+        var displayMedia = await (navigator.mediaDevices as any).getDisplayMedia({
+          video:true
+        });
+        displayMedia.getVideoTracks().forEach((x:any) => {
+          this.localMediaStream.addTrack(x);
+        })
+      }
+      else {
+        await this.loadVideoStream();
+      }
+  
+      var newVideoTrack = this.localMediaStream.getVideoTracks()[0];
+  
+      this.peers.forEach(peer => {
+        peer.peerConnection?.getSenders().forEach(sender =>{
+          if (sender.track?.kind == "video") {
+            sender.replaceTrack(newVideoTrack);
+          }
+        })
       })
     }
-    else {
-      await this.loadVideoStream();
+    catch (ex) {
+      console.error(ex);
     }
+    finally {
 
-    var newVideoTrack = this.localMediaStream.getVideoTracks()[0];
-
-    this.peers.forEach(peer => {
-      peer.peerConnection?.getSenders().forEach(sender =>{
-        if (sender.track?.kind == "video") {
-          sender.replaceTrack(newVideoTrack);
-        }
-      })
-    })
-
-    this.isScreenSharing = !this.isScreenSharing;
-    this.update();
+      this.isScreenSharing = !this.isScreenSharing;
+      this.update();
+    }
   }
 
   public update = () => {
