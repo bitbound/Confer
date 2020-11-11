@@ -1,5 +1,5 @@
 import { HubConnectionState } from "@microsoft/signalr";
-import React, { Component, CSSProperties } from "react";
+import React, { Component } from "react";
 import { LoadingAnimation } from "./LoadingAnimation";
 import { SessionContext } from "../services/SessionContext";
 import { If } from "./If";

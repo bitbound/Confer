@@ -12,8 +12,6 @@ import { IceCandidateMessage } from '../interfaces/IceCandidateMessage';
 export class SessionContextState {
   public isSession: boolean = false;
   public isScreenSharing: boolean = false;
-  public localAudioDeviceId?: string;
-  public localVideoDeviceId?: string;
   public localMediaStream: MediaStream = new MediaStream();
   public sessionChecked: boolean = false;
   public sessionId?: string;
@@ -24,10 +22,6 @@ export class SessionContextState {
   public readonly stateUpdated: EventEmitterEx<SessionContextState> = new EventEmitterEx();
 
   constructor() {
-    const settings = getSettings();
-    this.localAudioDeviceId = settings.defaultAudioInput;
-    this.localVideoDeviceId = settings.defaultVideoInput;
-
     this.isSession = window.location.pathname
       .toLowerCase()
       .includes("/session/");
@@ -52,6 +46,7 @@ export class SessionContextState {
     this.getSessionInfo(true);
 
     if (this.sessionInfo) {
+      await this.initLocalMedia();
       await this.updatePeers();
       await this.sendOffers();
       this.update();
@@ -186,8 +181,6 @@ export class SessionContextState {
     if (connectionState == HubConnectionState.Connected) {
       this.peers.splice(0);
 
-      await this.initLocalMedia();
-
       this.update();
       if (!this.localMediaStream?.getTracks()) {
         return;
@@ -268,9 +261,12 @@ export class SessionContextState {
 
   private loadAudioStream = async () => {
     try {
+      let settings = getSettings();
       let audioStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          deviceId: this.localAudioDeviceId
+          deviceId: {
+            ideal: settings.defaultAudioInput
+          }
         }
       });
       audioStream.getTracks().forEach(x => {
@@ -284,9 +280,12 @@ export class SessionContextState {
 
   private loadVideoStream = async () => {
     try {
+      let settings = getSettings();
       let videoStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          deviceId: this.localVideoDeviceId
+          deviceId: {
+            ideal: settings.defaultVideoInput
+          }
         }
       });
       videoStream.getTracks().forEach(x => {
