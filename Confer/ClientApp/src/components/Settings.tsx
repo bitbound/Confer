@@ -132,49 +132,72 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
   }
 
   loadSelectedAudioDevice(deviceId: string) {
-    loadAudioDevice(deviceId).then(audioStream => {
-      let audioContext = new AudioContext();
-      let scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
-      scriptProcessor.addEventListener("audioprocess", ev => {
-        if (this.audioLevelProgress.current) {
-          const input = ev.inputBuffer.getChannelData(0);
-          let sum = 0.0;
-          for (var i = 0; i < input.length; ++i) {
-            sum += input[i] * input[i];
-          }
-          let audioLevel = Math.sqrt(sum / input.length);
-          this.audioLevelProgress.current.value = audioLevel * 2;
-        }
-      });
-
-      let streamSource = audioContext.createMediaStreamSource(audioStream);
-      streamSource.connect(scriptProcessor);
-      scriptProcessor.connect(audioContext.destination);
-
+    try {
       this.setState({
-        selectedAudioInput: deviceId,
-        audioStream: audioStream,
-        audioContext: audioContext,
-        audioProcessor: scriptProcessor,
-        audioStreamSource: streamSource
+        selectedAudioInput: deviceId
       });
 
-    }).catch(error => {
-      console.error(error);
-      alert("Failed to get audio stream.");
-    })
+      this.state.audioStream?.getAudioTracks().forEach(x => {
+        x.stop();
+      });
+
+      loadAudioDevice(deviceId).then(audioStream => {
+        let audioContext = new AudioContext();
+        let scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+        scriptProcessor.addEventListener("audioprocess", ev => {
+          if (this.audioLevelProgress.current) {
+            const input = ev.inputBuffer.getChannelData(0);
+            let sum = 0.0;
+            for (var i = 0; i < input.length; ++i) {
+              sum += input[i] * input[i];
+            }
+            let audioLevel = Math.sqrt(sum / input.length);
+            this.audioLevelProgress.current.value = audioLevel * 2;
+          }
+        });
+  
+        let streamSource = audioContext.createMediaStreamSource(audioStream);
+        streamSource.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+  
+        this.setState({
+          audioStream: audioStream,
+          audioContext: audioContext,
+          audioProcessor: scriptProcessor,
+          audioStreamSource: streamSource
+        });
+  
+      }).catch(error => {
+        console.error(error);
+        alert("Failed to get audio stream.");
+      })
+    }
+    catch {
+      alert("Failed to load audio device.");
+    }
+    
   }
 
   loadSelectedVideoDevice(deviceId: string) {
-    loadVideoDevice(deviceId).then(videoStream => {
+    try {
       this.setState({
-        selectedVideoInput: deviceId,
-        videoStream: videoStream
+        selectedVideoInput: deviceId
+      });
+      this.state.videoStream?.getVideoTracks().forEach(x => {
+        x.stop();
+      });
+      loadVideoDevice(deviceId).then(videoStream => {
+        this.setState({
+          videoStream: videoStream
+        })
+      }).catch(reason => {
+        console.error(reason);
+        alert("Failed to get video stream.");
       })
-    }).catch(reason => {
-      console.error(reason);
-      alert("Failed to get video stream.");
-    })
+    }
+    catch {
+      alert("Failed to load video device.");
+    }
   }
 
   render() {

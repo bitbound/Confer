@@ -1,41 +1,59 @@
 export async function enumerateAudioInputs(): Promise<MediaDeviceInfo[]> {
-  try{
-    await navigator.mediaDevices.getUserMedia({
-      audio: true
+  try {
+    var tempStraem = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
     });
+    var devices = await navigator.mediaDevices.enumerateDevices();
+
+    // Tracks must be stopped to avoid errors when
+    // attempting to get the media device again.
+    tempStraem.getTracks().forEach(x => {
+      x.stop();
+    });
+    return devices.filter(x => x.kind == "audioinput");
   }
   catch {
     console.warn("Failed to get user audio while enumerating.");
+    return [];
   }
-  
-  var devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(x => x.kind == "audioinput");;
 }
 
 export async function enumerateAudioOuputs(): Promise<MediaDeviceInfo[]> {
   try {
-    await navigator.mediaDevices.getUserMedia({
-      audio: true
+    var tempStraem = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
     });
+    var devices = await navigator.mediaDevices.enumerateDevices();
+    tempStraem.getTracks().forEach(x => {
+      x.stop();
+    });
+    return devices.filter(x => x.kind == "audiooutput");
   }
   catch {
     console.warn("Failed to get user audio while enumerating.");
+    return [];
   }
-  var devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(x => x.kind == "audiooutput");;
 }
 
 export async function enumerateVideoInputs(): Promise<MediaDeviceInfo[]> {
   try {
-    await navigator.mediaDevices.getUserMedia({
-      video: true
+    var devices = await navigator.mediaDevices.enumerateDevices();
+    var tempStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
     });
+    tempStream.getTracks().forEach(x => {
+      x.stop();
+    })
+    return devices.filter(x => x.kind == "videoinput");;
   }
   catch {
     console.warn("Failed to get user video while enumerating.");
+    return [];
   }
-  var devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter(x => x.kind == "videoinput");;
+
 }
 
 export function loadAudioDevice(deviceId: string): Promise<MediaStream> {
