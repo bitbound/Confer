@@ -61,6 +61,7 @@ namespace Confer.Services
                     session.Participants.Remove(Context.ConnectionId, out _);
                 }
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, SessionId);
+                await Clients.OthersInGroup(SessionId).SendAsync("PeerLeft", Context.ConnectionId);
             }
             await base.OnDisconnectedAsync(exception);
         }

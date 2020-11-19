@@ -9,10 +9,15 @@ class SignalingService {
   private connection?: HubConnection;
   private initialized: boolean = false;
 
+  public get connectionState(): HubConnectionState {
+    return this.connection?.state || HubConnectionState.Connecting;
+  }
+
   public readonly onChatMessageReceived = new EventEmitterEx<ChatMessage>();
   public readonly onConnectionStateChanged = new EventEmitterEx<HubConnectionState>();
   public readonly onSdpReceived = new EventEmitterEx<SdpMessage>();
   public readonly onIceCandidateReceived = new EventEmitterEx<IceCandidateMessage>();
+  public readonly onPeerLeft = new EventEmitterEx<string>();
   
   public connect(): Promise<boolean> {
     if (this.initialized) {
@@ -55,6 +60,9 @@ class SignalingService {
           timestamp: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
         })
       });
+      this.connection.on("PeerLeft", (peerId:string) => {
+        this.onPeerLeft.publish(peerId);
+      })
 
       this.connection.onclose(() => this.onConnectionStateChanged.publish(HubConnectionState.Disconnected));
       this.connection.onreconnecting(() => this.onConnectionStateChanged.publish(HubConnectionState.Reconnecting));

@@ -8,4 +8,7 @@ export class EventEmitterEx<T> extends EventEmitter {
     publish(value: T) {
         this.emit("", value);
     }
+    unsubscribe(listener: (args: T) => void) {
+        this.off("", listener);
+    }
 }

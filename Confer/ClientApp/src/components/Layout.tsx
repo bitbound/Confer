@@ -8,7 +8,7 @@ import authService from './api-authorization/AuthorizeService';
 import { If } from './If';
 import { Session } from './Session';
 import { Route } from 'react-router-dom';
-import { SessionContext } from '../services/SessionContext';
+import { SessionInfoContext } from '../services/SessionInfoContext';
 
 interface LayoutProps { }
 interface LayoutState {
@@ -19,8 +19,8 @@ interface LayoutState {
 
 export class Layout extends Component<LayoutProps, LayoutState> {
   static displayName = Layout.name;
-  static contextType = SessionContext;
-  context!: React.ContextType<typeof SessionContext>;
+  static contextType = SessionInfoContext;
+  context!: React.ContextType<typeof SessionInfoContext>;
   
   subscription: number = 1;
 
@@ -82,11 +82,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
 
   private renderMainContent(menuVisible: boolean) {
     const {
-      isSession,
-      sessionId,
-      sessionChecked,
-      sessionInfo,
-      connectionState
+      isSession
     } = this.context;
 
     const {
@@ -140,14 +136,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
           </If>
 
           <If condition={isSession}>
-            <Route path='/session/:sessionId' component={(props: any) =>
-              <Session
-                sessionId={sessionId}
-                sessionChecked={sessionChecked}
-                connectionState={connectionState}
-                sessionInfo={sessionInfo}
-                {...props} />
-            } />
+            <Route path='/session/:sessionId' component={Session} />
           </If>
         </div>
       </div>

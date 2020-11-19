@@ -11,6 +11,7 @@ export async function enumerateAudioInputs(): Promise<MediaDeviceInfo[]> {
     tempStraem.getTracks().forEach(x => {
       x.stop();
     });
+    
     return devices.filter(x => x.kind == "audioinput");
   }
   catch {

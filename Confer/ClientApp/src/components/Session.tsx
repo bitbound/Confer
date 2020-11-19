@@ -1,7 +1,7 @@
 import { HubConnectionState } from "@microsoft/signalr";
 import React, { Component } from "react";
 import { LoadingAnimation } from "./LoadingAnimation";
-import { SessionContext } from "../services/SessionContext";
+import { SessionInfoContext } from "../services/SessionInfoContext";
 import { If } from "./If";
 import { getSettings } from "../services/SettingsService";
 import { Signaler } from "../services/SignalingService";
@@ -9,6 +9,9 @@ import { ChatMessage } from "../interfaces/ChatMessage";
 import "./Session.css";
 import { SettingsComp } from "./Settings";
 import { Col, Row } from "reactstrap";
+import { Peer } from "../interfaces/Peer";
+import { IceCandidateMessage } from "../interfaces/IceCandidateMessage";
+import { SdpMessage } from "../interfaces/SdpMessage";
 
 interface SessionProps {
 
@@ -17,45 +20,345 @@ interface SessionProps {
 interface SessionState {
   mainViewingStream?: MediaStream;
   selectedName?: string;
-  messages: ChatMessage[];
+  connectionState: HubConnectionState;
+  localMediaStream: MediaStream;
+  peers: Peer[];
+  isScreenSharing: boolean;
+  chatMessages: ChatMessage[];
 }
 
 export class Session extends Component<SessionProps, SessionState> {
-  static contextType = SessionContext;
-  context!: React.ContextType<typeof SessionContext>;
+  static contextType = SessionInfoContext;
+  context!: React.ContextType<typeof SessionInfoContext>;
 
   constructor(props: SessionProps) {
     super(props);
     this.state = {
-      mainViewingStream: undefined,
       selectedName: "",
-      messages: []
+      chatMessages: [],
+      connectionState: Signaler.connectionState,
+      isScreenSharing: false,
+      peers: [],
+      localMediaStream: new MediaStream()
     }
   }
 
-  componentDidMount() {
-    Signaler.onChatMessageReceived.subscribe(message => {
-      console.log("Chat message received.");
-      this.setState({
-        messages: [...this.state.messages, message]
-      })
-    })
+  async componentDidMount() {
+    Signaler.onConnectionStateChanged.subscribe(this.handleConnectionStateChanged);
+    Signaler.onSdpReceived.subscribe(this.handleSdpReceived);
+    Signaler.onIceCandidateReceived.subscribe(this.handleIceCandidateReceived);
+    Signaler.onChatMessageReceived.subscribe(this.handleChatMessageReceived);
+    Signaler.onPeerLeft.subscribe(this.handlePeerLeft);
+
+    if (Signaler.connectionState == HubConnectionState.Connecting) {
+      await Signaler.connect();
+    }
+    else if (this.context.sessionInfo && this.context.sessionJoined) {
+      await this.initLocalMedia();
+      await this.updatePeers();
+      await this.sendOffers();
+    }
   }
 
   componentWillUnmount() {
-    Signaler.onChatMessageReceived.removeAllListeners();
+    Signaler.onConnectionStateChanged.unsubscribe(this.handleConnectionStateChanged);
+    Signaler.onSdpReceived.unsubscribe(this.handleSdpReceived);
+    Signaler.onIceCandidateReceived.unsubscribe(this.handleIceCandidateReceived);
+    Signaler.onChatMessageReceived.unsubscribe(this.handleChatMessageReceived);
+    Signaler.onPeerLeft.unsubscribe(this.handlePeerLeft);
+  }
+  
+  public toggleShareScreen = async () => {
+    const {
+      localMediaStream,
+      isScreenSharing,
+      peers
+    } = this.state;
+
+    try {
+      if (!(navigator.mediaDevices as any).getDisplayMedia) {
+        alert("Screen sharing is not supported on this browser/device.");
+        return;
+      }
+      
+      localMediaStream.getVideoTracks().forEach(x => {
+        localMediaStream.removeTrack(x);
+        x.stop();
+      });
+  
+      if (!isScreenSharing) {
+        var displayMedia = await (navigator.mediaDevices as any).getDisplayMedia({
+          video:true
+        });
+        displayMedia.getVideoTracks().forEach((x:any) => {
+          localMediaStream.addTrack(x);
+        })
+      }
+      else {
+        await this.loadVideoStream();
+      }
+  
+      var newVideoTrack = localMediaStream.getVideoTracks()[0];
+  
+      peers.forEach(peer => {
+        peer.peerConnection?.getSenders().forEach(sender =>{
+          if (sender.track?.kind == "video") {
+            sender.replaceTrack(newVideoTrack);
+          }
+        })
+      })
+    }
+    catch (ex) {
+      console.error(ex);
+    }
+    finally {
+      this.setState({
+        isScreenSharing: !isScreenSharing
+      });
+    }
+  }
+
+
+  private addLocalMediaTracks = (pc: RTCPeerConnection) => {
+    console.log("Adding tracks");
+    this.state.localMediaStream.getTracks().forEach(track => {
+      pc?.addTrack(track, this.state.localMediaStream);
+    });
+  }
+
+  private configurePeerConnection = (pc: RTCPeerConnection, peerId: string) => {
+    const {
+      peers
+    } = this.state;
+
+    console.log("Configure peer connection for ID: ", peerId);
+    pc.addEventListener("icecandidate", ev => {
+      if (ev.candidate) {
+        Signaler.sendIceCandidate(peerId, ev.candidate);
+      }
+    });
+    pc.addEventListener("connectionstatechange", ev => {
+      console.log(`PeerConnection state changed to ${pc.connectionState} for peer ${peerId}.`);
+      if (pc.connectionState == "closed" || 
+          pc.connectionState == "failed") {
+            // TODO: Check with signaling server if peer is still there.
+          }
+    });
+    pc.addEventListener("iceconnectionstatechange", ev => {
+      console.log(`ICE connection state changed to ${pc.iceConnectionState} for peer ${peerId}.`);
+      if (pc.iceConnectionState == "failed" || 
+          pc.iceConnectionState == "closed") {
+            // TOD: Check with signaling server if peer is still there.
+          }
+    })
+    pc.addEventListener("negotiationneeded", async (ev) => {
+      // TODO: Handle offer collisions politely.
+      console.log("Negotation needed.");
+      var offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      console.log("Sending renegotiation offer: ", pc.localDescription);
+      await Signaler.sendSdp(peerId, getSettings().displayName, pc.localDescription);
+    });
+    pc.addEventListener("track", ev => {
+      console.log("Track received: ", ev.track);
+      let peer = peers.find(x => x.signalingId == peerId);
+      if (!peer){
+       console.error("Peer not found for ID ", peerId);
+       return;
+      }
+      if (peer.remoteMediaStream) {
+        peer.remoteMediaStream.addTrack(ev.track);
+      }
+      else {
+        peer.remoteMediaStream = new MediaStream([ev.track]);
+      }
+      this.forceUpdate();
+    });
+  }
+
+  private handleChatMessageReceived = async (message: ChatMessage) => {
+    console.log("Chat message received.");
+    this.setState({
+      chatMessages: [...this.state.chatMessages, message]
+    })
+  }
+  
+  private handleConnectionStateChanged = async (connectionState: HubConnectionState) => {
+    console.log("WebSocket connection state changed: ", connectionState);
+    this.setState({
+      connectionState: connectionState
+    });
+
+    if (connectionState == HubConnectionState.Connected) {
+      this.setState({
+        peers: []
+      })
+
+      if (!this.state.localMediaStream?.getTracks()) {
+        return;
+      }
+
+      this.context.getSessionInfo();
+    }
+  }
+
+  private handleIceCandidateReceived = (iceMessage: IceCandidateMessage) => {
+    console.log("ICE candidate received: ", iceMessage);
+    var peer = this.state.peers.find(x => x.signalingId == iceMessage.peerId);
+    if (peer && peer.peerConnection) {
+      try {
+        peer.peerConnection.addIceCandidate(iceMessage.iceCandidate);
+      }
+      catch (ex) {
+        console.warn("Failed to set ICE candidate. ", ex);
+      }
+    }
+    else {
+      console.log(`Peer ID ${iceMessage.peerId} not found in `, this.state.peers);
+    }
+  }
+
+  private handlePeerLeft = (peerId: string) => {
+    console.log("Peer left: ", peerId);
+    this.setState({
+      peers: this.state.peers.filter(x => x.signalingId != peerId)
+    });
+  }
+
+  private handleSdpReceived = async (sdpMessage: SdpMessage) => {
+    console.log("Received SDP: ", sdpMessage);
+    var peer = this.state.peers.find(x=>x.signalingId == sdpMessage.signalingId);
+
+    if (sdpMessage.description.type == "offer") {
+      var iceServers = await Signaler.getIceServers();
+
+      var pc = peer?.peerConnection || new RTCPeerConnection({
+        iceServers: iceServers
+      });
+      
+      if (!peer || !peer.peerConnection) {
+        this.addLocalMediaTracks(pc);
+        peer = {
+          signalingId: sdpMessage.signalingId,
+          displayName: sdpMessage.displayName,
+          peerConnection: pc
+        };
+  
+        this.setState({
+          peers: [...this.state.peers, peer]
+        })
+
+        this.configurePeerConnection(pc, sdpMessage.signalingId);
+      }
+
+      await pc.setRemoteDescription(sdpMessage.description);
+      var answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      console.log("Sending SDP answer to: ", sdpMessage.signalingId);
+      await Signaler.sendSdp(sdpMessage.signalingId, getSettings().displayName, pc.localDescription);
+    }
+    else if (sdpMessage.description.type == "answer") {
+      if (!peer) {
+        console.error(`Unable to find peer with ID ${sdpMessage.signalingId}.`);
+        return;
+      }
+      peer.displayName = sdpMessage.displayName;
+      peer.signalingId = sdpMessage.signalingId;
+      await peer.peerConnection?.setRemoteDescription(sdpMessage.description);
+    }
+    else {
+      console.error("Unhandled SDP type.", sdpMessage);
+    }
+  }
+
+  private initLocalMedia = async () => {
+    await this.loadAudioStream();
+    await this.loadVideoStream();
+  }
+
+  private loadAudioStream = async () => {
+    try {
+      let settings = getSettings();
+      let audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          deviceId: {
+            ideal: settings.defaultAudioInput
+          }
+        }
+      });
+      audioStream.getTracks().forEach(x => {
+        this.state.localMediaStream.addTrack(x);
+      })
+    }
+    catch {
+      console.warn("Failed to get audio device.");
+    }
+  }
+
+  private loadVideoStream = async () => {
+    try {
+      let settings = getSettings();
+      let videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: {
+            ideal: settings.defaultVideoInput
+          }
+        }
+      });
+      videoStream.getTracks().forEach(x => {
+        this.state.localMediaStream.addTrack(x);
+      })
+    }
+    catch {
+      console.warn("Failed to get video device.");
+    }
+  }
+
+
+  private sendOffer = async (x: Peer, iceServers: RTCIceServer[]) => {
+    x.peerConnection = new RTCPeerConnection({
+      iceServers: iceServers
+    });
+
+    this.configurePeerConnection(x.peerConnection, x.signalingId);
+    
+    this.addLocalMediaTracks(x.peerConnection);
+  }
+
+  private sendOffers = async () => {
+    const iceServers = await Signaler.getIceServers();
+    this.state.peers.forEach(async x => {
+      await this.sendOffer(x, iceServers);
+    })
+  }
+
+  private updatePeers = async () => {
+    var peerIds = await Signaler.getPeers();
+
+    peerIds.forEach(x => {
+      if (!this.state.peers.some(y => y.signalingId == x)) {
+        this.setState({
+          peers: [...this.state.peers, {signalingId: x}]
+        })
+      }
+    })
   }
 
   render() {
     const {
       sessionChecked,
       sessionInfo,
-      connectionState,
       sessionJoined,
+    } = this.context;
+
+    const {
+      chatMessages,
+      connectionState,
       localMediaStream,
       peers,
       isScreenSharing
-    } = this.context;
+    } = this.state;
 
     switch (connectionState) {
       
@@ -100,7 +403,9 @@ export class Session extends Component<SessionProps, SessionState> {
               </h5>
               <div>
                 <button className="btn btn-lg btn-primary"
-                  onClick={this.context.joinSession}>
+                  onClick={async () => {
+                    await this.context.joinSession();
+                  }}>
                   Join Chat
               </button>
               </div>
@@ -222,7 +527,7 @@ export class Session extends Component<SessionProps, SessionState> {
           <button 
             className={`share-screen-button btn btn-sm ${isScreenSharing ? "btn-danger" : "btn-info"}`}
             onClick={() => {
-              this.context.toggleShareScreen()
+              this.toggleShareScreen()
             }}>
               {isScreenSharing ? "Stop Sharing" : "Share Screen"}
           </button>
@@ -243,7 +548,7 @@ export class Session extends Component<SessionProps, SessionState> {
                 }
               }}
               className="chat-messages-window">
-              {this.state.messages.map((x, index) => (
+              {chatMessages.map((x, index) => (
                 <div key={`chat-message-${index}`}>
                   <span style={{ fontWeight: "bold" }}>
                     {x.senderDisplayName}

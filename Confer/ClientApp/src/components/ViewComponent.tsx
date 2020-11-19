@@ -19,7 +19,7 @@ export class ViewComponent<T extends ViewModel<T>> extends React.Component<ViewC
       this.setState({
         ...updatedViewModel
       })
-    })
+    });
   }
   render() {
     const ViewContext = React.createContext(this.state);

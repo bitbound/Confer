@@ -6,7 +6,7 @@ import ApiAuthorizationRoutes from './components/api-authorization/ApiAuthorizat
 import { ApplicationPaths } from './components/api-authorization/ApiAuthorizationConstants';
 import './custom.css'
 import { SettingsComp } from './components/Settings';
-import { SessionContextData, SessionContext } from './services/SessionContext';
+import { SessionInfoContextData, SessionInfoContext } from './services/SessionInfoContext';
 import { ViewComponent } from './components/ViewComponent';
 
 
@@ -15,7 +15,7 @@ export default class App extends Component {
 
   render() {
     return (
-      <ViewComponent viewModel={SessionContextData} viewContext={SessionContext}>
+      <ViewComponent viewModel={SessionInfoContextData} viewContext={SessionInfoContext}>
         <Layout>
           <Route exact path='/' component={Home} />
           <Route path='/settings' component={SettingsComp} />

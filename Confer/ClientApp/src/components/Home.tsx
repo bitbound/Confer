@@ -49,9 +49,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={titleText}
                 onChange={ev => {
-                  this.state.sessionInfo.titleText = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      titleText:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
@@ -62,9 +64,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={titleTextColor}
                 onChange={ev => {
-                  this.state.sessionInfo.titleTextColor = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      titleTextColor:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
@@ -75,9 +79,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={titleBackgroundColor}
                 onChange={ev => {
-                  this.state.sessionInfo.titleBackgroundColor = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      titleBackgroundColor:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
@@ -88,9 +94,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={logoUrl}
                 onChange={ev => {
-                  this.state.sessionInfo.logoUrl = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      logoUrl:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
@@ -101,9 +109,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={pageBackgroundColor}
                 onChange={ev => {
-                  this.state.sessionInfo.pageBackgroundColor = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      pageBackgroundColor:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
@@ -114,9 +124,11 @@ export class Home extends Component<HomeProps, HomeState> {
                 type="text"
                 value={pageTextColor}
                 onChange={ev => {
-                  this.state.sessionInfo.pageTextColor = ev.currentTarget.value;
                   this.setState({
-                    sessionInfo: this.state.sessionInfo
+                    sessionInfo: {
+                      ...this.state.sessionInfo,
+                      pageTextColor:  ev.currentTarget.value
+                    }
                   })
                 }}
               />
