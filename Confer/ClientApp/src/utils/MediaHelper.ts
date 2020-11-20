@@ -21,13 +21,20 @@ export async function enumerateAudioInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export async function enumerateAudioOuputs(): Promise<MediaDeviceInfo[]> {
+  var tempStream;
   try {
-    var tempStraem = await navigator.mediaDevices.getUserMedia({
+    tempStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false
     });
+  }
+  catch {
+    console.warn("Failed to get user audio while enumerating.");
+  }
+
+  try { 
     var devices = await navigator.mediaDevices.enumerateDevices();
-    tempStraem.getTracks().forEach(x => {
+    tempStream?.getTracks().forEach(x => {
       x.stop();
     });
     return devices.filter(x => x.kind == "audiooutput");
@@ -39,13 +46,20 @@ export async function enumerateAudioOuputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export async function enumerateVideoInputs(): Promise<MediaDeviceInfo[]> {
+  var tempStream;
   try {
-    var devices = await navigator.mediaDevices.enumerateDevices();
-    var tempStream = await navigator.mediaDevices.getUserMedia({
+    tempStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: false
     });
-    tempStream.getTracks().forEach(x => {
+  }
+  catch {
+    console.warn("Failed to get user video while enumerating.");
+  }
+  
+  try {
+    var devices = await navigator.mediaDevices.enumerateDevices();
+    tempStream?.getTracks().forEach(x => {
       x.stop();
     })
     return devices.filter(x => x.kind == "videoinput");;
