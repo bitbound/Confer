@@ -17,8 +17,8 @@ namespace Confer.Api
     [EnableCors("OpenPolicy")]
     public class SessionsController : ControllerBase
     {
-        private ISessionManager _sessionManager;
-        private ILogger<SessionsController> _logger;
+        private readonly ISessionManager _sessionManager;
+        private readonly ILogger<SessionsController> _logger;
 
         public SessionsController(ISessionManager sessionManager, ILogger<SessionsController> logger)
         {
