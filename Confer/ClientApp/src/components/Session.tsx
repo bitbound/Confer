@@ -316,20 +316,16 @@ export class Session extends Component<SessionProps, SessionState> {
   }
 
 
-  private sendOffer = async (x: Peer, iceServers: RTCIceServer[]) => {
-    x.peerConnection = new RTCPeerConnection({
-      iceServers: iceServers
-    });
-
-    this.configurePeerConnection(x.peerConnection, x.signalingId);
-    
-    this.addLocalMediaTracks(x.peerConnection);
-  }
-
   private sendOffers = async () => {
     const iceServers = await Signaler.getIceServers();
-    this.state.peers.forEach(async x => {
-      await this.sendOffer(x, iceServers);
+    this.state.peers.forEach(x => {
+        x.peerConnection = new RTCPeerConnection({
+            iceServers: iceServers
+        });
+
+        this.configurePeerConnection(x.peerConnection, x.signalingId);
+
+        this.addLocalMediaTracks(x.peerConnection);
     })
   }
 

@@ -18,8 +18,8 @@ namespace Confer.Services
 
         private readonly IceServer[] fallbackIceServers = new IceServer[]
                 {
-            new IceServer() { Urls = "stun: stun.l.google.com:19302"},
-            new IceServer() { Urls = "stun: stun4.l.google.com:19302"}
+            new IceServer() { Urls = "stun:stun.l.google.com:19302"},
+            new IceServer() { Urls = "stun:stun4.l.google.com:19302"}
         };
 
         public AppSettings(IConfiguration config)
