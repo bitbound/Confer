@@ -42,13 +42,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
         <button className="btn btn-secondary d-block mx-4 my-2">
           <NavLink tag={Link} className="text-light" to="/">
-            <FaHome className="mr-2" />
+            <FaHome className="me-2" />
             Home
           </NavLink>
         </button>
         <button className="btn btn-secondary d-block mx-4 my-2">
           <NavLink tag={Link} className="text-light" to="/settings">
-            <FaWrench className="mr-2" />
+            <FaWrench className="me-2" />
               Settings
             </NavLink>
         </button>

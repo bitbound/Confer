@@ -43,7 +43,7 @@ export class Home extends Component<HomeProps, HomeState> {
         <Row className="mt-4">
           <Col sm={12} md={10} lg={8} xl={6}>
             <h3>Session Options</h3>
-            <FormGroup>
+            <div className="mb-3">
               <Label>Title Text</Label>
               <Input
                 type="text"
@@ -57,8 +57,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup>
+            </div>
+            <div className="mb-3">
               <Label>Title Text Color</Label>
               <Input
                 type="text"
@@ -72,8 +72,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup>
+            </div>
+            <div className="mb-3">
               <Label>Title Background Color</Label>
               <Input
                 type="text"
@@ -87,8 +87,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup>
+            </div>
+            <div className="mb-3">
               <Label>Logo URL</Label>
               <Input
                 type="text"
@@ -102,8 +102,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup>
+            </div>
+            <div className="mb-3">
               <Label>Page Background Color</Label>
               <Input
                 type="text"
@@ -117,8 +117,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup>
+            </div>
+            <div className="mb-3">
               <Label>Page Text Color</Label>
               <Input
                 type="text"
@@ -132,8 +132,8 @@ export class Home extends Component<HomeProps, HomeState> {
                   })
                 }}
               />
-            </FormGroup>
-            <FormGroup className="text-right">
+            </div>
+            <div className="mb-3 text-end">
               <button className="btn btn-lg btn-primary"
                 type="button"
                 onClick={async () => {
@@ -161,7 +161,7 @@ export class Home extends Component<HomeProps, HomeState> {
                 }}>
                 Start
             </button>
-            </FormGroup>
+            </div>
           </Col>
         </Row>
 

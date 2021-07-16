@@ -204,8 +204,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     return (
       <Row>
         <Col sm={12} md={10} lg={8} xl={6}>
-          <h3>General</h3>
-          <FormGroup>
+          <h4>General</h4>
+          <div className="mb-4">
             <Label>Display Name</Label>
             <Input
               type="text"
@@ -219,9 +219,9 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                   displayName: ev.target.value
                 })
               }} />
-          </FormGroup>
-          <h3>Default Devices</h3>
-          <FormGroup>
+          </div>
+          <h4>Default Devices</h4>
+          <div className="mb-4">
             <Label>Camera</Label>
             <select
               className={"form-control"}
@@ -246,7 +246,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 </option>
               ))}
             </select>
-          </FormGroup>
+          </div>
 
           <If condition={!!this.state.videoStream}>
             <div>
@@ -265,7 +265,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
             </div>
           </If>
 
-          <FormGroup>
+          <div className="mb-4">
             <Label>Microphone</Label>
             <select
               className={"form-control"}
@@ -290,8 +290,8 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 </option>
               ))}
             </select>
-          </FormGroup>
-          <FormGroup>
+          </div>
+          <div className="mb-4">
             <progress
               ref={this.audioLevelProgress}
               value={0}
@@ -300,9 +300,9 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 width: "100%"
               }}
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
+          <div className="mb-4">
             <Label>Speaker</Label>
             <select
               className={"form-control"}
@@ -329,7 +329,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
                 </option>
               ))}
             </select>
-          </FormGroup>
+          </div>
         </Col>
       </Row>
     );
