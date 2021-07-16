@@ -101,7 +101,7 @@ export class Layout extends Component<LayoutProps, LayoutState> {
       <div style={{ display: "grid", gridTemplateRows: "auto 1fr", gridRowGap: "10px", height: "100%" }}>
         <header>
           <Navbar
-            className="ng-white box-shadow mb-3 justify-content-start"
+            className="ng-white box-shadow mb-3 px-3 justify-content-start"
             light
             style={{ backgroundColor: titleBackgroundColor }}>
             <If condition={menuVisible}>
