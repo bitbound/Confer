@@ -60,7 +60,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     await this.initAudioOutputs();
   }
 
-  async initAudioInputs() {
+  initAudioInputs = async () => {
     try {
       const settings = getSettings();
 
@@ -83,7 +83,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     }
   }
 
-  async initAudioOutputs() {
+  initAudioOutputs = async () => {
     try {
       const settings = getSettings();
 
@@ -108,7 +108,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     }
   }
 
-  async initVideoInputs() {
+  initVideoInputs = async () => {
     try {
       const settings = getSettings();
 
@@ -131,7 +131,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     }
   }
 
-  loadSelectedAudioDevice(deviceId: string) {
+  loadSelectedAudioDevice = (deviceId: string) => {
     try {
       this.setState({
         selectedAudioInput: deviceId
@@ -142,19 +142,14 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
       });
 
       loadAudioDevice(deviceId).then(audioStream => {
+
+        if (this.state.audioProcessor) {
+            this.state.audioProcessor.removeEventListener("audioprocess", this.processAudio);
+        }
+
         let audioContext = new AudioContext();
         let scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
-        scriptProcessor.addEventListener("audioprocess", ev => {
-          if (this.audioLevelProgress.current) {
-            const input = ev.inputBuffer.getChannelData(0);
-            let sum = 0.0;
-            for (var i = 0; i < input.length; ++i) {
-              sum += input[i] * input[i];
-            }
-            let audioLevel = Math.sqrt(sum / input.length);
-            this.audioLevelProgress.current.value = audioLevel * 2;
-          }
-        });
+        scriptProcessor.addEventListener("audioprocess", this.processAudio);
   
         let streamSource = audioContext.createMediaStreamSource(audioStream);
         streamSource.connect(scriptProcessor);
@@ -178,7 +173,7 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
     
   }
 
-  loadSelectedVideoDevice(deviceId: string) {
+  loadSelectedVideoDevice = (deviceId: string) => {
     try {
       this.setState({
         selectedVideoInput: deviceId
@@ -199,6 +194,19 @@ export class SettingsComp extends Component<SettingsProps, SettingsState> {
       alert("Failed to load video device.");
     }
   }
+  
+  processAudio = (ev: AudioProcessingEvent) => {
+    if (this.audioLevelProgress?.current) {
+      const input = ev.inputBuffer.getChannelData(0);
+      let sum = 0.0;
+      for (var i = 0; i < input.length; ++i) {
+        sum += input[i] * input[i];
+      }
+      let audioLevel = Math.sqrt(sum / input.length);
+      this.audioLevelProgress.current.value = audioLevel * 2;
+    }
+  }
+
 
   render() {
     return (

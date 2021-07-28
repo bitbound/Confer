@@ -391,7 +391,7 @@ export class Session extends Component<SessionProps, SessionState> {
 
     if (!sessionJoined) {
       return (
-        <div className="mt-4 ml-4">
+        <div className="mt-4 ms-4">
           <Row className="mb-5 text-center">
             <Col sm={12} md={10} lg={8} xl={6}>
               <h5 className="mb-3">
