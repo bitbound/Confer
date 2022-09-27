@@ -2,7 +2,7 @@
 Create branded, on-demand video chat sessions in your browser.
 
 ## Project Links  
-Hosted App: https://confer.lucency.co  
+Hosted App: https://confer.jaredg.dev
 Sponsor: https://github.com/sponsors/lucent-sea    
 Donate: https://www.paypal.com/donate?hosted_button_id=L8ZB3L9NCBNWW
 
