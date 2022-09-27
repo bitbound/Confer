@@ -40,13 +40,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
         </div>
 
-        <button className="btn btn-secondary d-block mx-4 my-2">
+        <button className="btn btn-secondary d-block mx-4 my-2 py-3">
           <NavLink tag={Link} className="text-light" to="/">
             <FaHome className="me-2" />
             Home
           </NavLink>
         </button>
-        <button className="btn btn-secondary d-block mx-4 my-2">
+        <button className="btn btn-secondary d-block mx-4 my-2 py-3">
           <NavLink tag={Link} className="text-light" to="/settings">
             <FaWrench className="me-2" />
               Settings

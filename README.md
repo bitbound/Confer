@@ -2,12 +2,12 @@
 Create branded, on-demand video chat sessions in your browser.
 
 ## Project Links  
-Hosted App: https://confer.jaredg.dev
-Sponsor: https://github.com/sponsors/lucent-sea    
-Donate: https://www.paypal.com/donate?hosted_button_id=L8ZB3L9NCBNWW
+Hosted App: https://confer.jaredg.dev  
+Sponsor: https://github.com/sponsors/lucent-sea  
+Donate: https://www.paypal.com/donate?hosted_button_id=L8ZB3L9NCBNWW  
 
 ## Build Requirements
-* .NET 5 SDK
+* .NET 6 SDK
 * Node.js (latest)
 
 ## Building
@@ -20,4 +20,4 @@ dotnet run
 ```
 
 ## Screenshot
-!["Confer Screennshot](https://lucency.co/Images/Screenshots/Confer1.jpg)
+!["Confer Screennshot](.github/screenshot.jpg)
